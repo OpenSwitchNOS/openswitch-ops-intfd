@@ -19,6 +19,8 @@ cmake_minimum_required (VERSION 2.8)
 
 set (INTFD intfd)
 project (${INTFD})
+set (SRC_DIR src)
+set (INCL_DIR include)
 
 # Define compile flags
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -Wall -Werror")
@@ -29,18 +31,18 @@ pkg_check_modules(HALONUTILS REQUIRED opsutils)
 pkg_check_modules(OVSCOMMON REQUIRED libovscommon)
 pkg_check_modules(OVSDB REQUIRED libovsdb)
 
-include_directories (${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}
+include_directories (${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/${INCL_DIR}
    ${OVSCOMMON_INCLUDE_DIRS})
 
 
 # Source files to build intfd
-set (SOURCES intfd.c intfd_ovsdb_if.c intfd_utils.c)
+set (SOURCES ${SRC_DIR}/intfd.c ${SRC_DIR}/intfd_ovsdb_if.c ${SRC_DIR}/intfd_utils.c)
 
 # Rules to build intfd
 add_executable (${INTFD} ${SOURCES})
 
 target_link_libraries (${INTFD} ${HALONUTILS_LIBRARIES} ${CONFIG_YAML_LIBRARIES} ${OVSCOMMON_LIBRARIES}
-                      ${OVSDB_LIBRARIES} ${OPENSSL_LIBRARIES}
+                       ${OVSDB_LIBRARIES} ${OPENSSL_LIBRARIES}
                        -lpthread -lrt)
 
 # Rules to install intfd binary in rootfs

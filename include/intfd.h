@@ -15,9 +15,9 @@
  under the License.
 */
 /************************************************************************//**
- * @defgroup intfd Halon Interface Daemon
+ * @defgroup intfd OpenSwitch Interface Daemon
  *
- * @brief Halon interface daemon (intfd)
+ * @brief OpenSwitch interface daemon (intfd)
  *
  * The interface daemon manages the Physical Interfaces.
  * Based on the user interface configuration and other parameters which effects
@@ -30,7 +30,7 @@
  * Header for intfd daemon
  *
  * @defgroup intfd_public Public Interface
- * The intfd daemon manages the physical interfaces on the OpenHalon platform.
+ * The intfd daemon manages the physical interfaces on the OpenSwitch platform.
  *
  * @{
  *
@@ -38,7 +38,7 @@
  *
  * Command line options:
  *
- *     intfd: Halon Interface daemon
+ *     intfd: OpenSwitch Interface daemon
  *     usage: intfd [OPTIONS] [DATABASE]
  *     where DATABASE is a socket on which ovsdb-server is listening
  *           (default: "unix:/var/run/openvswitch/db.sock").

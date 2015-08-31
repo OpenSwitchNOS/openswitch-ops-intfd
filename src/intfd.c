@@ -21,7 +21,7 @@
  * @file
  * Source for Interface daemon (intfd).
  *
- * Purpose: Main file for the implementation of the Halon Interface Daemon (intfd).
+ * Purpose: Main file for the implementation of the OpenSwitch Interface Daemon (intfd).
  *
  *          Its purpose in life is:
  *
@@ -72,7 +72,7 @@ VLOG_DEFINE_THIS_MODULE(intfd);
 static void
 usage(void)
 {
-    printf("%s: Halon interface daemon\n"
+    printf("%s: OpenSwitch interface daemon\n"
            "usage: %s [OPTIONS] [DATABASE]\n"
            "where DATABASE is a socket on which ovsdb-server is listening\n"
            "      (default: \"unix:%s/db.sock\").\n",
@@ -175,13 +175,13 @@ parse_options(int argc, char *argv[], char **unixctl_pathp)
 } /* parse_options */
 
 static void
-halon_intfd_exit(struct unixctl_conn *conn, int argc OVS_UNUSED,
+ops_intfd_exit(struct unixctl_conn *conn, int argc OVS_UNUSED,
                   const char *argv[] OVS_UNUSED, void *exiting_)
 {
     bool *exiting = exiting_;
     *exiting = true;
     unixctl_command_reply(conn, NULL);
-} /* halon_intfd_exit */
+} /* ops_intfd_exit */
 
 int
 main(int argc, char *argv[])
@@ -213,7 +213,7 @@ main(int argc, char *argv[])
     }
 
     /* Register the ovs-appctl "exit" command for this daemon. */
-    unixctl_command_register("exit", "", 0, 0, halon_intfd_exit, &exiting);
+    unixctl_command_register("exit", "", 0, 0, ops_intfd_exit, &exiting);
 
     /* Create the IDL cache of the dB at ovsdb_sock. */
     intfd_init(ovsdb_sock);
@@ -225,7 +225,7 @@ main(int argc, char *argv[])
     /* Enable asynch log writes to disk. */
     vlog_enable_async();
 
-    VLOG_INFO_ONCE("%s (Halon Interface Daemon) started", program_name);
+    VLOG_INFO_ONCE("%s (OpenSwitch Interface Daemon) started", program_name);
 
     exiting = false;
     while (!exiting) {

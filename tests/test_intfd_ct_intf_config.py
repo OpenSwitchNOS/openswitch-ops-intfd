@@ -84,7 +84,7 @@ class intfdTest(HalonTest):
 
     def setupNet(self):
 
-        # Create a topology with single Halon switch and
+        # Create a topology with single OpenSwitch switch and
         # one regular host.
         host_opts = self.getHostOpts()
         switch_opts = self.getSwitchOpts()
@@ -845,7 +845,7 @@ class intfdTest(HalonTest):
 
 
     def user_config_speeds(self):
-        # HALON_TODO: Fixed speed calculations based on the
+        # OPS_TODO: Fixed speed calculations based on the
         # pluggable module is not working as expected.
         # Once it is corrected, implement the tests based on that.
         pass

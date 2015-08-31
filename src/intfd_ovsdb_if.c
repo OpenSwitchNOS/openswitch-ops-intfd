@@ -149,7 +149,7 @@ typedef struct subsystem {
     int32_t      mtu;
 } subsystem_t;
 
-/* HALON_TODO: Need to modify to handle multiple subsystems */
+/* OPS_TODO: Need to modify to handle multiple subsystems */
 /* Hardcoding this for now as the base subsytem */
 subsystem_t                     base_subsys = {0};
 
@@ -314,7 +314,7 @@ intfd_ovsdb_init(const char *db_path)
     /* Initialize IDL through a new connection to the dB. */
     idl = ovsdb_idl_create(db_path, &ovsrec_idl_class, false, true);
     idl_seqno = ovsdb_idl_get_seqno(idl);
-    ovsdb_idl_set_lock(idl, "halon_intfd");
+    ovsdb_idl_set_lock(idl, "ops_intfd");
 
     /* Reject writes to columns which are not marked write-only using
      * ovsdb_idl_omit_alert(). */
@@ -462,7 +462,7 @@ intfd_parse_user_cfg(struct intf_user_cfg *user_config,
 
     intfd_print_smap("interface_user_config", ifrow_config);
 
-    /* HALON_TODO: Add functions to validate the user_config data.
+    /* OPS_TODO: Add functions to validate the user_config data.
      * Without meta-schema we can't do such validation. */
 
     /* user_config:admin_state */
@@ -986,7 +986,7 @@ calc_intf_op_state_n_reason(struct iface *intf)
         intf->op_state.reason = intf->op_state.autoneg_reason;
 
     } else {
-        /* HALON_TODO: Lots of other business logic needs to be added here. */
+        /* OPS_TODO: Lots of other business logic needs to be added here. */
         /* If we get here, everything's fine. */
         intf->op_state.enabled = true;
         intf->op_state.reason = INTERFACE_ERROR_OK;
@@ -1006,7 +1006,7 @@ validate_n_set_interface_capability(struct iface *intf)
      * AN and speeds.
     */
 
-    /* HALON_TODO: Add support for multi-speed capable transceivers (or
+    /* OPS_TODO: Add support for multi-speed capable transceivers (or
        fixed ports). Hard coded for now to single speed.
     */
 
@@ -1028,7 +1028,7 @@ validate_n_set_interface_capability(struct iface *intf)
 
     } else if (CONNECTOR_IS_SFP(intf)) {
         intf->op_state.autoneg_capability = INTFD_AUTONEG_CAPABILITY_REQUIRED;
-        /* HALON_TODO: Currently not supporting tri-speed devices */
+        /* OPS_TODO: Currently not supporting tri-speed devices */
         intf->op_state.speeds[0] = SPEED_1G;
         intf->op_state.n_speeds = 1;
 
@@ -1443,7 +1443,7 @@ intfd_reconfigure(void)
 
     /* Need MTU from subsystem table.
      *
-     * HALON_TODO: need to add multiple subsystem support
+     * OPS_TODO: need to add multiple subsystem support
      *
      * For now, hard coding to look for "base" and continue to assume
      * that all interfaces belong to the "base" subsystem.
