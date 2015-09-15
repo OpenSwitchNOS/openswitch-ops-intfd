@@ -974,11 +974,11 @@ class Test_intfd:
         # Stop PMD. This tests manually sets lot of DB elements
         # that 'pmd' is responsible for. To avoid any cross
         # interaction disable 'pmd'
-        Test_intfd.test.switch1.cmd("/bin/systemctl stop pmd")
+        Test_intfd.test.switch1.cmd("/bin/systemctl stop ops-pmd")
         pass
 
     def teardown_class(cls):
-        Test_intfd.test.switch1.cmd("/bin/systemctl start pmd")
+        Test_intfd.test.switch1.cmd("/bin/systemctl start ops-pmd")
         # Stop the Docker containers, and
         # mininet topology
         Test_intfd.test.net.stop()

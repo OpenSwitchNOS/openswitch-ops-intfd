@@ -16,12 +16,12 @@
 */
 
 /************************************************************************//**
- * @ingroup intfd
+ * @ingroup ops-intfd
  *
  * @file
- * Source for Interface daemon (intfd).
+ * Source for Interface daemon (ops-intfd).
  *
- * Purpose: Main file for the implementation of the OpenSwitch Interface Daemon (intfd).
+ * Purpose: Main file for the implementation of the OpenSwitch Interface Daemon (ops-intfd).
  *
  *          Its purpose in life is:
  *
@@ -64,9 +64,9 @@
 
 #include "intfd.h"
 
-VLOG_DEFINE_THIS_MODULE(intfd);
+VLOG_DEFINE_THIS_MODULE(ops-intfd);
 
-/** @ingroup intfd
+/** @ingroup ops-intfd
  * @{ */
 
 static void
@@ -104,7 +104,7 @@ intfd_init(const char *db_path)
     intfd_ovsdb_init(db_path);
 
     /* Register ovs-appctl commands for this daemon. */
-    unixctl_command_register("intfd/dump", "", 0, 1, intfd_unixctl_dump, NULL);
+    unixctl_command_register("ops-intfd/dump", "", 0, 1, intfd_unixctl_dump, NULL);
 } /* intfd_init */
 
 static void

@@ -15,9 +15,9 @@
  under the License.
 */
 /************************************************************************//**
- * @defgroup intfd OpenSwitch Interface Daemon
+ * @defgroup ops-intfd OpenSwitch Interface Daemon
  *
- * @brief OpenSwitch interface daemon (intfd)
+ * @brief OpenSwitch interface daemon (ops-intfd)
  *
  * The interface daemon manages the Physical Interfaces.
  * Based on the user interface configuration and other parameters which effects
@@ -27,10 +27,10 @@
  * @{
  *
  * @file
- * Header for intfd daemon
+ * Header for ops-intfd daemon
  *
  * @defgroup intfd_public Public Interface
- * The intfd daemon manages the physical interfaces on the OpenSwitch platform.
+ * The ops-intfd daemon manages the physical interfaces on the OpenSwitch platform.
  *
  * @{
  *
@@ -38,22 +38,22 @@
  *
  * Command line options:
  *
- *     intfd: OpenSwitch Interface daemon
- *     usage: intfd [OPTIONS] [DATABASE]
+ *     ops-intfd: OpenSwitch Interface daemon
+ *     usage: ops-intfd [OPTIONS] [DATABASE]
  *     where DATABASE is a socket on which ovsdb-server is listening
  *           (default: "unix:/var/run/openvswitch/db.sock").
  *
  *      Daemon options:
  *        --detach                run in background as daemon
  *        --no-chdir              do not chdir to '/'
- *        --pidfile[=FILE]        create pidfile (default: /var/run/openvswitch/intfd.pid)
+ *        --pidfile[=FILE]        create pidfile (default: /var/run/openvswitch/ops-intfd.pid)
  *        --overwrite-pidfile     with --pidfile, start even if already running
  *
  *      Logging options:
  *        -vSPEC, --verbose=SPEC   set logging levels
  *        -v, --verbose            set maximum verbosity level
  *        --log-file[=FILE]        enable logging to specified FILE
- *                                 (default: /var/log/openvswitch/intfd.log)
+ *                                 (default: /var/log/openvswitch/ops-intfd.log)
  *        --syslog-target=HOST:PORT  also send syslog msgs to HOST:PORT via UDP
  *
  *      Other options:
@@ -67,7 +67,7 @@
  *      exit
  *      list-commands
  *      version
- *      intfd/dump              dumps daemons internal data for debugging.
+ *      ops-intfd/dump              dumps daemons internal data for debugging.
  *      vlog/disable-rate-limit [module]...
  *      vlog/enable-rate-limit  [module]...
  *      vlog/list
@@ -76,24 +76,24 @@
  *
  * OVSDB elements usage
  *
- *  The following table rows are READ by intfd:
+ *  The following table rows are READ by ops-intfd:
  *
  *      Interface:name
  *      Interface:pm_info
  *      Interface:user_config
  *      Open_vswitch:cur_cfg
  *
- *  The following columns are WRITTEN by intfd:
+ *  The following columns are WRITTEN by ops-intfd:
  *
  *      Interface:error
  *      Interface:hw_intf_config
  *
  * Linux Files:
  *
- *  The following files are written by intfd:
+ *  The following files are written by ops-intfd:
  *
- *      /var/run/openvswitch/intfd.pid: Process ID for the intfd
- *      /var/run/openvswitch/intfd.<pid>.ctl: Control file for ovs-appctl
+ *      /var/run/openvswitch/ops-intfd.pid: Process ID for the ops-intfd
+ *      /var/run/openvswitch/ops-intfd.<pid>.ctl: Control file for ovs-appctl
  *
  ***************************************************************************/
 /** @} end of group intfd_public */
@@ -196,4 +196,4 @@ extern void intfd_wait(void);
 extern void intfd_debug_dump(struct ds *ds, int argc, const char *argv[]);
 
 #endif /* __INTFD_H__ */
-/** @} end of group intfd */
+/** @} end of group ops-intfd */

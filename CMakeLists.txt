@@ -17,7 +17,7 @@
 
 cmake_minimum_required (VERSION 2.8)
 
-set (INTFD intfd)
+set (INTFD ops-intfd)
 project (${INTFD})
 set (SRC_DIR src)
 set (INCL_DIR include)
@@ -35,16 +35,16 @@ include_directories (${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/${INCL_DIR}
    ${OVSCOMMON_INCLUDE_DIRS})
 
 
-# Source files to build intfd
+# Source files to build ops-intfd
 set (SOURCES ${SRC_DIR}/intfd.c ${SRC_DIR}/intfd_ovsdb_if.c ${SRC_DIR}/intfd_utils.c)
 
-# Rules to build intfd
+# Rules to build ops-intfd
 add_executable (${INTFD} ${SOURCES})
 
 target_link_libraries (${INTFD} ${OPSUTILS_LIBRARIES} ${CONFIG_YAML_LIBRARIES} ${OVSCOMMON_LIBRARIES}
                        ${OVSDB_LIBRARIES} ${OPENSSL_LIBRARIES}
                        -lpthread -lrt)
 
-# Rules to install intfd binary in rootfs
+# Rules to install ops-intfd binary in rootfs
 install(TARGETS ${INTFD}
     RUNTIME DESTINATION bin)

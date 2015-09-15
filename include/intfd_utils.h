@@ -15,17 +15,17 @@
  under the License.
 */
 /************************************************************************//**
- * @ingroup intfd
+ * @ingroup ops-intfd
  *
  * @file
- * Header for intfd utility functions.
+ * Header for ops-intfd utility functions.
  *
  ***************************************************************************/
 
 #ifndef __INTFD_UTILS_H__
 #define __INTFD_UTILS_H__
 
-/** @ingroup intfd
+/** @ingroup ops-intfd
  * @{ */
 
 extern void intfd_print_smap(const char *name, const struct smap *map);
@@ -34,6 +34,6 @@ extern const char* intfd_get_error_str(enum ovsrec_interface_error_e reason);
 extern const char* intfd_get_intf_type_str(enum ovsrec_interface_hw_intf_config_interface_type_e intf_type);
 extern const char* intfd_get_lane_split_str(enum ovsrec_interface_user_config_lane_split_e ls);
 
-/** @} end of group intfd */
+/** @} end of group ops-intfd */
 
 #endif /* __INTFD_UTILS_H__ */
