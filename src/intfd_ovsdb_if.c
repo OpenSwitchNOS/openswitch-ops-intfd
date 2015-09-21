@@ -324,6 +324,7 @@ intfd_ovsdb_init(const char *db_path)
     ovsdb_idl_add_table(idl, &ovsrec_table_system);
     ovsdb_idl_add_table(idl, &ovsrec_table_subsystem);
     ovsdb_idl_add_table(idl, &ovsrec_table_interface);
+    ovsdb_idl_add_table(idl, &ovsrec_table_port);
 
     /* Monitor the following columns, marking them read-only. */
     ovsdb_idl_add_column(idl, &ovsrec_system_col_cur_cfg);
@@ -334,6 +335,8 @@ intfd_ovsdb_init(const char *db_path)
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_pm_info);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_split_parent);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_split_children);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_admin_state);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_interfaces);
 
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_hw_intf_info);
     ovsdb_idl_omit_alert(idl, &ovsrec_interface_col_hw_intf_info);
@@ -1425,6 +1428,249 @@ handle_interfaces_config_mods(struct shash *sh_idl_interfaces)
 
 } /* handle_interfaces_config_mods */
 
+/* Function : get_matching_port_row()
+ * Desc     : search the ovsdb and get the matching
+ *            interface row based on the port row name.
+ * Param    : seach based on row name
+ * Return   : returns the matching row or NULL incase
+ *            no row is found.
+ */
+struct ovsrec_port *
+get_matching_port_row(const char *ifname)
+{
+    const struct ovsrec_port *port_row = NULL;
+    const struct ovsrec_interface *intf_row = NULL;
+    int i;
+
+    OVSREC_INTERFACE_FOR_EACH(intf_row, idl)
+    {
+        if (strcmp(intf_row->name, ifname) == 0)
+        {
+            break;
+        }
+    }
+
+    if (intf_row == NULL) {
+        return NULL;
+    }
+
+    OVSREC_PORT_FOR_EACH(port_row, idl) {
+        VLOG_INFO("In intfd find matching port with name %s\n",ifname);
+        /* check for match */
+        for (i = 0; i < port_row->n_interfaces; i++)
+        {
+            intf_row = port_row->interfaces[i];
+            VLOG_INFO("Compare the interface %s with ifname %s", intf_row->name, ifname);
+            if (strcmp(intf_row->name, ifname) == 0) {
+                VLOG_INFO("In intfd Found matching port row with name %s\n",port_row->name);
+                return (struct ovsrec_port *)port_row;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+/* Function : get_matching_interface_row()
+ * Desc     : search the ovsdb and get the matching
+ *            interface row based on the port row name.
+ * Param    : seach based on row name
+ * Return   : returns the matching row or NULL incase
+ *            no row is found.
+ */
+struct ovsrec_interface *
+get_matching_interface_row(const char *name)
+{
+    const struct ovsrec_interface *intf_row = NULL;
+    OVSREC_INTERFACE_FOR_EACH(intf_row, idl) {
+        /* check for match */
+        if (strcmp(intf_row->name, name) == 0) {
+            VLOG_INFO("in intfd Found matching interface row with name %s\n",name);
+            return (struct ovsrec_interface *)intf_row;
+        }
+    }
+
+    return NULL;
+}
+
+/* Function : intfd_get_hw_config()
+ * Desc     : Gets the appropriate state for the key "enable" in port
+              hw_config. In case of LAG the enable key will be same as
+              the port admin_state. In case of VLAN interface the key
+              "enable" will be set based on the interface admin state.
+ * Param    : port admin state, interface admin state
+ * Return   : Boolean true/false equivalent to "up"/"down"
+ */
+bool
+intfd_get_hw_config(char *port_state, char *intf_state)
+{
+    bool rc = false;
+
+    if (intf_state == NULL) {
+        VLOG_INFO("Interface state is NULL\n");
+        intf_state = (char *)malloc(5);
+        strcpy(intf_state, "down");
+    }
+
+    if (port_state == NULL) {
+        VLOG_INFO("POrt state is NULL\n");
+        port_state = (char *)malloc(5);
+        strcpy(port_state, "up");
+    }
+
+    if ((strcmp(port_state, "up") == 0) && (strcmp(intf_state, "up") == 0)) {
+        /* set enabled key in hw_config to up */
+        VLOG_INFO("1N. set hw_intf_config to true\n");
+        rc = true;
+    }
+    if ((strcmp(port_state, "down") == 0) && (strcmp(intf_state, "down") == 0)) {
+        /* set enabled key in hw_config to down */
+        VLOG_INFO("2N. set hw_intf_config to false\n");
+        rc = false;
+    }
+    if ((strcmp(port_state, "up") == 0) && (strcmp(intf_state, "down") == 0)) {
+        /* set enabled key in hw_config to down */
+        VLOG_INFO("3N. set hw_intf_config to false\n");
+        rc = false;
+    }
+    if ((strcmp(port_state, "down") == 0) && (strcmp(intf_state, "up") == 0)) {
+        /* set enabled key in hw_config to down */
+        VLOG_INFO("4N. set hw_intf_config to false\n");
+        rc = false;
+    }
+
+    return rc;
+}
+
+/* Function : intfd_intf_admin_state_up_down_events()
+ * Desc     : Updates the hw_config key "enable" based on the user
+ *            configuration to set the port admin state to up or down.
+ * Param    : None
+ * Return   : None
+ */
+static int
+intfd_intf_admin_state_up_down_events(void)
+{
+    const struct ovsrec_port *port_row = NULL;
+    const struct ovsrec_interface *intf_row = NULL;
+    char *cur_state =NULL;
+    struct smap hw_cfg_smap;
+    bool enabled = false;
+    int rc = 0;
+
+    VLOG_INFO("intfd_intf_admin_state_up_down_events\n");
+    /*
+     * Check if the admin state column changed.
+     */
+    if (OVSREC_IDL_IS_COLUMN_MODIFIED(ovsrec_interface_col_user_config,
+                                      idl_seqno)) {
+
+    VLOG_INFO("1. Interface admin state modified\n");
+        /* Search for port row which has changed admin_state */
+        OVSREC_INTERFACE_FOR_EACH (intf_row, idl) {
+
+            /* If the port row is modified then update the hw_config for that row */
+            if (OVSREC_IDL_IS_ROW_MODIFIED(intf_row, idl_seqno)) {
+                VLOG_INFO("1. Interface row which has modified admin state\n");
+                smap_init(&hw_cfg_smap);
+                cur_state = (char *)smap_get(&intf_row->user_config, INTERFACE_USER_CONFIG_MAP_ADMIN);
+
+                /* Check if we are working on a VLAN interface or LAG */
+                if ((port_row = get_matching_port_row(intf_row->name)) != NULL) {
+                    /* Check for LAG. In Lag the port name and the interface
+                       name will not match. In such a case just configure the
+                       hw_intf_config same as the user_config */
+                    if (strcmp(port_row->name, intf_row->name) != 0) {
+                        /* its a LAG */
+                        enabled = strcmp(cur_state, "down")?true:false;
+                    } else {
+                        /* Its a VLAN interface or L3 interface */
+                        VLOG_INFO("1. For intfd we are in normal/VLAN interface/LAG section\n");
+                        enabled = intfd_get_hw_config(port_row->admin_state, cur_state);
+                    }
+                } else {
+                    VLOG_INFO("1. For intfd we are in is NOT interface section\n");
+                    /* set hw_config same as port admin_status */
+//                    enabled = intfd_get_hw_config(port_row->admin_state, cur_state);
+                    enabled = false;
+                }
+                smap_add(&hw_cfg_smap, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE, enabled?"true":"false");
+                VLOG_INFO("1. Set the hw_intf_config to %s\n", enabled?"true":"false");
+                ovsrec_interface_set_hw_intf_config(intf_row, &hw_cfg_smap);
+                rc++;
+                smap_destroy(&hw_cfg_smap);
+            }
+        }
+    }
+
+    return rc;
+}
+
+/* Function : intfd_port_admin_state_up_down_events()
+ * Desc     : Updates the hw_config key "enable" based on the user
+ *            configuration to set the port admin state to up or down.
+ * Param    : None
+ * Return   : None
+ */
+static int
+intfd_port_admin_state_up_down_events(void)
+{
+    const struct ovsrec_port *port_row = NULL;
+    const struct ovsrec_interface *intf_row = NULL;
+    char *cur_state =NULL;
+    struct smap hw_cfg_smap;
+    bool enabled = false;
+    int i;
+    const char *tmp_str = NULL;
+    int rc = 0;
+
+    VLOG_INFO("intfd_port_admin_state_up_down_events\n");
+
+    /*
+     * Check if the admin state column changed.
+     */
+    if (OVSREC_IDL_IS_COLUMN_MODIFIED(ovsrec_port_col_admin_state,
+                                      idl_seqno)) {
+
+        VLOG_INFO("2. In intfd Port admin state modified\n");
+        /* Search for port row which has changed admin_state */
+        OVSREC_PORT_FOR_EACH (port_row, idl) {
+
+            /* If the port row is modified then update the hw_config for that row */
+            if (OVSREC_IDL_IS_ROW_MODIFIED(port_row, idl_seqno)) {
+                /* Check if we are working on a VLAN interface */
+                VLOG_INFO("2. In intfd port row which has modified admin state\n");
+                if (port_row->n_interfaces) {
+                    VLOG_INFO("2. Number of interfaces for por row %s\n",
+                            port_row->name);
+                } else {
+                    VLOG_INFO("No interface\n");
+                    continue;
+                }
+
+                for (i = 0; i < port_row->n_interfaces; i++)
+                {
+                    smap_init(&hw_cfg_smap);
+                    intf_row = port_row->interfaces[i];
+                    cur_state = (char *)smap_get(&intf_row->user_config, INTERFACE_USER_CONFIG_MAP_ADMIN);
+                    /* Its a VLAN interface */
+                    VLOG_INFO("2. For intfd we are in normal/VLAN/LAG interface section\n");
+                    VLOG_INFO("2. For intfd we are in interface name %s\n", intf_row->name);
+                    enabled = intfd_get_hw_config(port_row->admin_state, cur_state);
+
+                    tmp_str = enabled?INTERFACE_HW_INTF_CONFIG_MAP_ENABLE_TRUE:INTERFACE_HW_INTF_CONFIG_MAP_ENABLE_FALSE;
+                    smap_add(&hw_cfg_smap, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE, tmp_str);
+                    VLOG_INFO("2. Set the hw_intf_config to %s\n", tmp_str);
+                    ovsrec_interface_set_hw_intf_config(intf_row, &hw_cfg_smap);
+                    rc++;
+                    smap_destroy(&hw_cfg_smap);
+                }
+            }
+        }
+    }
+    return rc;
+}
+
 static int
 intfd_reconfigure(void)
 {
@@ -1440,6 +1686,7 @@ intfd_reconfigure(void)
         /* There was no change in the dB. */
         return 0;
     }
+    VLOG_INFO("Intfd_reconfigure\n");
 
     /* Need MTU from subsystem table.
      *
@@ -1497,6 +1744,11 @@ intfd_reconfigure(void)
 
     /* Process interface config changes. */
     rc = handle_interfaces_config_mods(&sh_idl_interfaces);
+
+    VLOG_INFO("calling update to admin state\n");
+    /* Update the hw_interface config based on port admin state*/
+    rc |= intfd_intf_admin_state_up_down_events();
+    rc |= intfd_port_admin_state_up_down_events();
 
     /* Update idl_seqno after handling all OVSDB updates. */
     idl_seqno = new_idl_seqno;
