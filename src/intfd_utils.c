@@ -98,6 +98,9 @@ intfd_get_error_str(enum ovsrec_interface_error_e reason)
     case INTERFACE_ERROR_AUTONEG_REQUIRED:
         return OVSREC_INTERFACE_ERROR_AUTONEG_REQUIRED;
 
+    case PORT_ERROR_ADMIN_DOWN:
+        return OVSREC_PORT_ERROR_ADMIN_DOWN;
+
     case INTERFACE_ERROR_OK:
         return OVSREC_INTERFACE_ERROR_OK;
     default:
