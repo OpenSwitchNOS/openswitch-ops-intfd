@@ -99,6 +99,13 @@ class intfdTest(OpsVsiTest):
         info("\n============= intfd user config tests =============\n")
         s1 = self.net.switches[0]
 
+        # Configure interface on switch s1 as no routing else the interface
+        # will use the port admin logic to set its own hw_intf_config state
+        s1.cmdCLI("configure terminal")
+        s1.cmdCLI("interface " + test_intf)
+        s1.cmdCLI("no routing")
+        s1.cmdCLI("exit")
+
         info("Verify that interface " + test_intf + " is present in the DB.\n")
         out = s1.cmd("/usr/bin/ovs-vsctl list interface " + test_intf )
         if '_uuid' not in out:
@@ -276,7 +283,6 @@ class intfdTest(OpsVsiTest):
         # Get the supported speeds from hw_intf_info:speeds
         hw_info_speeds = sw_get_intf_state(s1, test_intf, \
                                             ['hw_intf_info:speeds'])
-
         sw_set_intf_user_config(s1, test_intf, [ 'admin=up' ])
         short_sleep()
         hw_enable = sw_get_intf_state(s1, test_intf, \
@@ -393,8 +399,13 @@ class intfdTest(OpsVsiTest):
             out = sw_get_intf_state(s1, test_intf, ['hw_intf_config:interface_type'])
             assert intf_type == out, "hw_intf_type configuration in hw_intf_config is wrong."
 
+        # Configure interface on switch s1 as no routing else the interface
+        # will use the port admin logic to set its own hw_intf_config state
+        s1.cmdCLI("configure terminal")
+        s1.cmdCLI("interface " + split_parent)
+        s1.cmdCLI("no routing")
+        s1.cmdCLI("exit")
         # In X86 config Interface 50 is Splittable port.
-
         # Enable the split parent interface.
         sw_set_intf_user_config(s1, split_parent, ['admin=up', 'lane_split=no-split'])
 
@@ -418,6 +429,12 @@ class intfdTest(OpsVsiTest):
         # Enable the split children port.
         sw_set_intf_user_config(s1, split_parent, ['admin=down', 'lane_split=split'])
         for child_port in split_children:
+            # Configure interface on switch s1 as no routing else the interface
+            # will use the port admin logic to set its own hw_intf_config state
+            s1.cmdCLI("configure terminal")
+            s1.cmdCLI("interface " + child_port)
+            s1.cmdCLI("no routing")
+            s1.cmdCLI("exit")
             sw_set_intf_user_config(s1, child_port, ['admin=up']);
 
         # HW intf config for split children.
@@ -435,6 +452,7 @@ class intfdTest(OpsVsiTest):
             for child_port in split_children:
                 out = sw_get_intf_state(s1, child_port, ['hw_intf_config:interface_type'])
                 assert intf_type == out, "hw_intf_type configuration in hw_intf_config is wrong for split child."
+
 
         # Unsupported pluggable modules when interface is split
         pm_intf_type = [ 'SFP_RJ45', 'SFP_SX', 'SFP_SR', 'SFP_LR', 'SFP_DAC' ]
@@ -464,7 +482,6 @@ class intfdTest(OpsVsiTest):
 
         info("\n============= intfd user config autoneg tests =============\n")
         s1 = self.net.switches[0]
-
         sw_clear_user_config(s1, test_intf);
         sw_clear_user_config(s1, split_parent);
         sw_set_intf_user_config(s1, test_intf, ['admin=up'])
@@ -597,6 +614,12 @@ class intfdTest(OpsVsiTest):
         sw_set_intf_pm_info(s1, qsfp_intf, ('connector=QSFP_SR4',  \
                                             'connector_status=supported'))
         short_sleep()
+        # Configure interface on switch s1 as no routing else the interface
+        # will use the port admin logic to set its own hw_intf_config state
+        s1.cmdCLI("configure terminal")
+        s1.cmdCLI("interface " + qsfp_intf)
+        s1.cmdCLI("no routing")
+        s1.cmdCLI("exit")
         sw_set_intf_user_config(s1, qsfp_intf, ['admin=up'])
         short_sleep()
         info("Verify AN not specified, user_speeds not specified, AN unsupported\n");
@@ -930,6 +953,12 @@ class intfdTest(OpsVsiTest):
 
         info("\n============= intfd fixed 1G ports tests =============\n")
         s1 = self.net.switches[0]
+        # Configure interface fixed_intf on switch s1 as no routing else the interface
+        # will use the port admin logic to set its own hw_intf_config state
+        s1.cmdCLI("configure terminal")
+        s1.cmdCLI("interface " + fixed_intf)
+        s1.cmdCLI("no routing")
+        s1.cmdCLI("exit")
 
         # In VSI environment interfaces 1 - 10 are supposed to be fixed,
         # without any pluggable modules. If not skip this test.

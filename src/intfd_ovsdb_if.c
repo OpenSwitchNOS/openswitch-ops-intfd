@@ -55,7 +55,6 @@ VLOG_DEFINE_THIS_MODULE(intfd_ovsdb_if);
 
 /** @ingroup intfd
  * @{ */
-
 static struct ovsdb_idl *idl;
 
 static unsigned int idl_seqno;
@@ -64,6 +63,9 @@ static bool system_configured = false;
 
 /* Mapping of all the interfaces. */
 static struct shash all_interfaces = SHASH_INITIALIZER(&all_interfaces);
+
+/* Mapping of all the ports. */
+static struct shash all_ports = SHASH_INITIALIZER(&all_ports);
 
 struct intf_hw_info {
     bool is_pluggable;
@@ -110,6 +112,8 @@ struct intf_pm_info {
 struct iface {
     char                        *name;
     struct intf_hw_info         hw_info;
+    enum ovsrec_port_config_admin_e  port_admin;
+    char                        *type;
     struct intf_user_cfg        user_cfg;
     struct intf_oper_state      op_state;
     struct intf_pm_info         pm_info;
@@ -118,6 +122,11 @@ struct iface {
     int                         n_split_children;
 };
 
+struct port_info {
+    char                      *name;
+    size_t                    n_interfaces;
+    struct ovsrec_interface   **interface;
+};
 
 char *interface_pm_info_connector_strings[] = {
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP_CR4,
@@ -148,11 +157,14 @@ typedef struct subsystem {
     int32_t      mtu;
 } subsystem_t;
 
-/* OPS_TODO: Need to modify to handle multiple subsystems */
+/* FIXME: Need to modify to handle multiple subsystems */
 /* Hardcoding this for now as the base subsytem */
 subsystem_t                     base_subsys = {0};
 
 static void del_old_interface(struct shash_node *sh_node);
+
+void set_interface_config(const struct ovsrec_interface *ifrow, struct iface *intf);
+int remove_interface_from_port(const struct ovsrec_port *port_row);
 
 void
 intfd_debug_dump(struct ds *ds, int argc, const char *argv[])
@@ -323,6 +335,7 @@ intfd_ovsdb_init(const char *db_path)
     ovsdb_idl_add_table(idl, &ovsrec_table_system);
     ovsdb_idl_add_table(idl, &ovsrec_table_subsystem);
     ovsdb_idl_add_table(idl, &ovsrec_table_interface);
+    ovsdb_idl_add_table(idl, &ovsrec_table_port);
 
     /* Monitor the following columns, marking them read-only. */
     ovsdb_idl_add_column(idl, &ovsrec_system_col_cur_cfg);
@@ -333,6 +346,7 @@ intfd_ovsdb_init(const char *db_path)
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_pm_info);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_split_parent);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_split_children);
+    ovsdb_idl_add_column(idl, &ovsrec_interface_col_type);
 
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_hw_intf_info);
     ovsdb_idl_omit_alert(idl, &ovsrec_interface_col_hw_intf_info);
@@ -344,6 +358,9 @@ intfd_ovsdb_init(const char *db_path)
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_hw_intf_config);
     ovsdb_idl_omit_alert(idl, &ovsrec_interface_col_hw_intf_config);
 
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_admin);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_interfaces);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_name);
 } /* intfd_ovsdb_init */
 
 void
@@ -395,6 +412,68 @@ parse_speeds(const char *speeds_str, uint32_t *speeds)
     return (i);
 
 } /* parse_speeds */
+
+/* Function : get_matching_port_row()
+ * Desc     : search the ovsdb and get the matching
+ *            port row based on the interface row name.
+ * Param    : seach based on row name
+ * Return   : returns the matching row or NULL incase
+ *            no row is found.
+ */
+struct ovsrec_port *
+get_matching_port_row(const char *name)
+{
+    const struct ovsrec_port *port_row = NULL;
+    const struct ovsrec_interface *intf_row = NULL;
+    int i;
+
+    /* find out which port has this interface associated with it */
+    OVSREC_PORT_FOR_EACH(port_row, idl) {
+        if (port_row->n_interfaces) {
+            for (i = 0; i < port_row->n_interfaces; i++) {
+                intf_row = port_row->interfaces[i];
+                if (!strcmp(intf_row->name, name)) {
+                    return (struct ovsrec_port *)port_row;
+                }
+            }
+        }
+    }
+
+    return NULL;
+}
+
+static int
+port_parse_admin(enum ovsrec_port_config_admin_e  *port_admin,
+                 const struct ovsrec_interface *ifrow)
+{
+    const struct ovsrec_port *port_row = NULL;
+    *port_admin = PORT_ADMIN_CONFIG_DOWN;
+    int rc = 0;
+
+    port_row = get_matching_port_row(ifrow->name);
+    if(port_row) {
+        if ((port_row->admin == NULL) || (strcmp(port_row->admin, "up") == 0)) {
+            *port_admin = PORT_ADMIN_CONFIG_UP;
+        } else {
+            *port_admin = PORT_ADMIN_CONFIG_DOWN;
+        }
+        rc++;
+    }
+    return rc;
+}
+
+static enum ovsrec_interface_user_config_admin_e
+intf_parse_admin(const struct ovsrec_interface *intf_row) {
+    enum ovsrec_interface_user_config_admin_e rc = INTERFACE_USER_CONFIG_ADMIN_DOWN;
+    const char *data = NULL;
+
+    data = smap_get((const struct smap *)&intf_row->user_config,
+            INTERFACE_USER_CONFIG_MAP_ADMIN);
+    if (data && (STR_EQ(data, OVSREC_INTERFACE_USER_CONFIG_ADMIN_UP))) {
+        rc = INTERFACE_USER_CONFIG_ADMIN_UP;
+    }
+    return rc;
+}
 
 static void
 intfd_parse_hw_info(struct intf_hw_info *hw_info,
@@ -459,9 +538,10 @@ intfd_parse_user_cfg(struct intf_user_cfg *user_config,
     const char *hw_info_speeds = NULL;
     struct intf_hw_info hw_supported_speeds;
 
+    VLOG_DBG("Updating user config\n");
     intfd_print_smap("interface_user_config", ifrow_config);
 
-    /* OPS_TODO: Add functions to validate the user_config data.
+    /* FIXME: Add functions to validate the user_config data.
      * Without meta-schema we can't do such validation. */
 
     /* user_config:admin_state */
@@ -818,6 +898,36 @@ set_op_state_duplex(struct iface *intf)
 } /* set_op_state_duplex */
 
 static void
+add_new_port(const struct ovsrec_port *port_row)
+{
+    struct port_info *new_port = NULL;
+    int i;
+
+    VLOG_DBG("Port %s being added!\n", port_row->name);
+
+    /* If the port already exists, return. */
+    if (NULL != shash_find(&all_ports, port_row->name)) {
+        VLOG_WARN("Interface %s specified twice", port_row->name);
+        return;
+    }
+
+    /* Allocate structure to save state information for this port. */
+    new_port = xzalloc(sizeof(struct port_info));
+
+    shash_add(&all_ports, port_row->name, new_port);
+
+    new_port->name = xstrdup(port_row->name);
+    new_port->interface = xmalloc(port_row->n_interfaces * sizeof(struct ovsrec_interface *));
+    new_port->n_interfaces = port_row->n_interfaces;
+    for (i = 0; i < port_row->n_interfaces; i++) {
+        new_port->interface[i] = port_row->interfaces[i];
+    }
+
+    VLOG_DBG("Created local data structure for port %s", port_row->name);
+
+} /* add_new_port */
+
+static void
 add_new_interface(const struct ovsrec_interface *ifrow)
 {
     struct iface *new_intf = NULL;
@@ -840,7 +950,12 @@ add_new_interface(const struct ovsrec_interface *ifrow)
     intfd_parse_hw_info(&(new_intf->hw_info), &(ifrow->hw_intf_info));
     intfd_parse_user_cfg(&(new_intf->user_cfg), &(ifrow->user_config),
                          &(ifrow->hw_intf_info));
+
+    new_intf->type = xstrdup(ifrow->type);
+
+    /* Check for pm_info only if the interface is not internal */
     intfd_parse_pm_info(&(new_intf->hw_info), &(new_intf->pm_info), &(ifrow->pm_info));
+    port_parse_admin(&(new_intf->port_admin), ifrow);
 
     /* Note: splittable port processing occurs later once
      *       all interfaces have been added. */
@@ -855,6 +970,7 @@ del_old_interface(struct shash_node *sh_node)
     if (sh_node) {
         struct iface *intf = sh_node->data;
         free(intf->name);
+        free(intf->type);
         if (intf->split_children) {
             free(intf->split_children);
         }
@@ -862,6 +978,30 @@ del_old_interface(struct shash_node *sh_node)
         shash_delete(&all_interfaces, sh_node);
     }
 } /* del_old_interface */
+
+static void
+del_old_port(struct shash_node *sh_node)
+{
+    int j;
+    const struct ovsrec_interface *intf_row = NULL;
+    struct smap hw_cfg_smap;
+
+    if (sh_node) {
+        struct port_info *port_data = sh_node->data;
+        for(j = 0; j < port_data->n_interfaces; j++) {
+            smap_init(&hw_cfg_smap);
+            intf_row = port_data->interface[j];
+            VLOG_DBG("Port delete : reset interface %s\n", intf_row->name);
+            smap_add(&hw_cfg_smap, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE_FALSE);
+            ovsrec_interface_set_hw_intf_config(intf_row, &hw_cfg_smap);
+            smap_destroy(&hw_cfg_smap);
+        }
+        free(port_data->name);
+        free(port_data->interface);
+        free(port_data);
+        shash_delete(&all_ports, sh_node);
+    }
+} /* del_old_port */
 
 /* FUNCTION: calc_intf_op_state_n_reason()
  *
@@ -944,6 +1084,20 @@ calc_intf_op_state_n_reason(struct iface *intf)
     intf->op_state.enabled = false;
     intf->op_state.reason = INTERFACE_ERROR_UNINITIALIZED;
 
+    if (STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_INTERNAL)) {
+        if (intf->user_cfg.admin_state == INTERFACE_USER_CONFIG_ADMIN_DOWN) {
+            intf->op_state.reason = INTERFACE_ERROR_ADMIN_DOWN;
+
+        /* Checking for port admin as down */
+        } else if (intf->port_admin == PORT_ADMIN_CONFIG_DOWN) {
+            intf->op_state.reason = PORT_ERROR_ADMIN_DOWN;
+        } else {
+            intf->op_state.enabled = true;
+            intf->op_state.reason = INTERFACE_ERROR_OK;
+        }
+        return;
+    }
+
     /* Checking for splittable primary interface & lanes_split condition. */
     if (intf->split_children != NULL &&
         intf->user_cfg.lane_split == INTERFACE_USER_CONFIG_LANE_SPLIT_SPLIT) {
@@ -957,6 +1111,7 @@ calc_intf_op_state_n_reason(struct iface *intf)
     /* Checking admin state. */
     } else if (intf->user_cfg.admin_state == INTERFACE_USER_CONFIG_ADMIN_DOWN) {
         intf->op_state.reason = INTERFACE_ERROR_ADMIN_DOWN;
+        VLOG_DBG("calc_state: Set admin state to DOWN\n");
 
     /* Checking for missing pluggable module. */
     } else if (intf->pm_info.connector == INTERFACE_PM_INFO_CONNECTOR_ABSENT) {
@@ -984,12 +1139,18 @@ calc_intf_op_state_n_reason(struct iface *intf)
     } else if (intf->op_state.autoneg_state == INTFD_AUTONEG_STATE_INVALID) {
         intf->op_state.reason = intf->op_state.autoneg_reason;
 
+    /* Checking for port admin as down */
+    } else if (intf->port_admin == PORT_ADMIN_CONFIG_DOWN) {
+        intf->op_state.reason = PORT_ERROR_ADMIN_DOWN;
+
     } else {
-        /* OPS_TODO: Lots of other business logic needs to be added here. */
+        /* FIXME: Lots of other business logic needs to be added here. */
         /* If we get here, everything's fine. */
+
         intf->op_state.enabled = true;
         intf->op_state.reason = INTERFACE_ERROR_OK;
         VLOG_DBG("Need to enable interface %s in hardware.\n", intf->name);
+
     }
 
 } /* calc_intf_op_state_n_reason */
@@ -1005,7 +1166,7 @@ validate_n_set_interface_capability(struct iface *intf)
      * AN and speeds.
     */
 
-    /* OPS_TODO: Add support for multi-speed capable transceivers (or
+    /* FIXME: Add support for multi-speed capable transceivers (or
        fixed ports). Hard coded for now to single speed.
     */
 
@@ -1027,7 +1188,7 @@ validate_n_set_interface_capability(struct iface *intf)
 
     } else if (CONNECTOR_IS_SFP(intf)) {
         intf->op_state.autoneg_capability = INTFD_AUTONEG_CAPABILITY_REQUIRED;
-        /* OPS_TODO: Currently not supporting tri-speed devices */
+        /* FIXME: Currently not supporting tri-speed devices */
         intf->op_state.speeds[0] = SPEED_1G;
         intf->op_state.n_speeds = 1;
 
@@ -1182,7 +1343,8 @@ set_intf_hw_config_in_db(const struct ovsrec_interface *ifrow, struct iface *int
 
     smap_add(&smap, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE, tmp_str);
 
-    if (intf->op_state.enabled == true) {
+    if ((intf->op_state.enabled == true) &&
+        (!STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_INTERNAL))) {
 
         /* hw_intf_config:autoneg */
         tmp_str = INTERFACE_HW_INTF_CONFIG_MAP_AUTONEG_OFF;
@@ -1234,9 +1396,8 @@ set_intf_hw_config_in_db(const struct ovsrec_interface *ifrow, struct iface *int
 
             smap_add(&smap, INTERFACE_HW_INTF_CONFIG_MAP_SPEEDS, speed_string);
         }
-
         smap_add(&smap, INTERFACE_HW_INTF_CONFIG_MAP_INTERFACE_TYPE,
-                 intfd_get_intf_type_str(intf->pm_info.intf_type));
+                  intfd_get_intf_type_str(intf->pm_info.intf_type));
     }
 
     ovsrec_interface_set_hw_intf_config(ifrow, &smap);
@@ -1260,7 +1421,7 @@ set_op_state_mtu(struct iface *intf)
     }
 } /* set_op_state_mtu */
 
-static void
+void
 set_interface_config(const struct ovsrec_interface *ifrow, struct iface *intf)
 {
     VLOG_DBG("Received new config for interface %s", ifrow->name);
@@ -1300,6 +1461,7 @@ handle_interfaces_config_mods(struct shash *sh_idl_interfaces)
     struct iface *intf = NULL;
     const struct ovsrec_interface *ifrow = NULL;
 
+    VLOG_DBG("handle_interfaces_config_mods\n");
     /* Loop through all the current interfaces and handle config changes. */
     SHASH_FOR_EACH(sh_node, &all_interfaces) {
         cfg_changed = false;
@@ -1316,8 +1478,11 @@ handle_interfaces_config_mods(struct shash *sh_idl_interfaces)
 
         } else if (OVSREC_IDL_IS_ROW_MODIFIED(ifrow, idl_seqno)) {
 
+            VLOG_DBG("Something got modified\n");
             intfd_parse_user_cfg(&new_user_cfg, &ifrow->user_config,
                                  &ifrow->hw_intf_info);
+
+            port_parse_admin(&(intf->port_admin), ifrow);
 
             if (!ifrow->split_parent) {
                 /* Parse this row's pm_info. */
@@ -1391,6 +1556,7 @@ handle_interfaces_config_mods(struct shash *sh_idl_interfaces)
                 intf->pm_info.op_connector_flags = new_pm_info.op_connector_flags;
             }
 
+            VLOG_DBG("cfg_changed = %d\n", cfg_changed);
             if (cfg_changed) {
                 /* Update interface configuration. */
                 set_interface_config(ifrow, intf);
@@ -1424,6 +1590,238 @@ handle_interfaces_config_mods(struct shash *sh_idl_interfaces)
 
 } /* handle_interfaces_config_mods */
 
+/* Function : add_del_interface_handle_port_config_mods()
+ * Desc     : Updates the hw_config key "enable" based on the user
+ *            configuration to set the port admin state to up or down.
+ * Param    : None
+ * Return   : None
+ */
+static int
+add_del_interface_handle_port_config_mods(void)
+{
+    const struct ovsrec_port *port_row = NULL;
+    const struct ovsrec_interface *intf_row = NULL;
+    int i;
+    struct iface *intf;
+    int rc = 0;
+    struct port_info *port_data;
+    const char *data = NULL;
+
+    VLOG_DBG("add_del_interface_handle_port_config_mods\n");
+
+    if ((OVSREC_IDL_IS_COLUMN_MODIFIED(ovsrec_port_col_admin,
+                    idl_seqno)) ||
+            (OVSREC_IDL_IS_COLUMN_MODIFIED(ovsrec_port_col_interfaces,
+                                           idl_seqno))) {
+        /*
+         * Check if the admin column changed.
+         */
+
+        VLOG_DBG("Port admin state modified\n");
+        /* Search for port row which has changed admin_state */
+        OVSREC_PORT_FOR_EACH (port_row, idl) {
+
+            /* If the port row is modified then update the
+               hw_intf_config for associated interfaces */
+            if (OVSREC_IDL_IS_ROW_MODIFIED(port_row, idl_seqno)) {
+                /* Go through each interface associated with this port */
+                VLOG_DBG("port row which has modified admin state\n");
+                /* update our port cache */
+                port_data = shash_find_data(&all_ports, port_row->name);
+                if (!port_data) {
+                    VLOG_DBG("Port cache is NULL\n");
+                    continue;
+                }
+
+                for (i = 0; i < port_row->n_interfaces; i++)
+                {
+                    intf_row = port_row->interfaces[i];
+
+                    /* Set the port_admin field to up/down
+                       based on port admin state */
+                    intf = shash_find_data(&all_interfaces, intf_row->name);
+                    if ((port_row->admin == NULL) || (!strcmp(port_row->admin, "up"))) {
+                        VLOG_DBG("Set intf->port_admin to up\n");
+                        intf->port_admin = PORT_ADMIN_CONFIG_UP;
+                    } else {
+                        VLOG_DBG("Set intf->port_admin to down\n");
+                        intf->port_admin = PORT_ADMIN_CONFIG_DOWN;
+                    }
+                    intf->user_cfg.admin_state = INTERFACE_USER_CONFIG_ADMIN_DOWN;
+                    data = smap_get((const struct smap *)&intf_row->user_config,
+                                    INTERFACE_USER_CONFIG_MAP_ADMIN);
+                    if (data && (STR_EQ(data, OVSREC_INTERFACE_USER_CONFIG_ADMIN_UP))) {
+                        intf->user_cfg.admin_state = INTERFACE_USER_CONFIG_ADMIN_UP;
+                    }
+                    set_interface_config(intf_row, intf);
+                    rc++;
+                }
+                rc |= remove_interface_from_port(port_row);
+                if (port_data->n_interfaces) {
+                    free(port_data->interface);
+                }
+                port_data->n_interfaces = port_row->n_interfaces;
+                if (port_data->n_interfaces) {
+                    port_data->interface = xmalloc(port_row->n_interfaces * sizeof(struct ovsrec_interface *));
+                }
+                VLOG_DBG("port_data->n_interfaces = %zu port_row->n_interfaces = %zu",
+                        port_data->n_interfaces, port_row->n_interfaces);
+                for (i = 0; i < port_row->n_interfaces; i++) {
+                    port_data->interface[i] = port_row->interfaces[i];
+                }
+            }
+        }
+    }
+    return rc;
+}
+
+int
+remove_interface_from_port(const struct ovsrec_port *port_row)
+{
+    int rc = 0, i, j;
+    int found;
+    const struct ovsrec_interface *intf_row = NULL;
+    struct smap hw_cfg_smap;
+    struct port_info *port_data;
+    struct iface *intf;
+
+    /* Go through each interface associated with this port */
+    VLOG_DBG("Add/Delete interface: port row which has modified\n");
+    port_data = shash_find_data(&all_ports, port_row->name);
+    if (!port_data) {
+        VLOG_DBG("port_data is NULL\n");
+        return rc;
+    }
+
+    if (!port_row->n_interfaces) {
+        /* Reset the interface admin state */
+        VLOG_DBG("First interface\n");
+        VLOG_DBG("deleting interface from port\n");
+        for(j = 0; j < port_data->n_interfaces; j++) {
+            intf_row = port_data->interface[j];
+            intf = shash_find_data(&all_interfaces, intf_row->name);
+            if (port_parse_admin(&intf->port_admin, intf_row)) {
+                intf->user_cfg.admin_state = intf_parse_admin(intf_row);
+                VLOG_INFO("Set the new admin state based on the port state\n");
+                set_interface_config(intf_row, intf);
+            } else {
+                VLOG_DBG("reset interface %s\n", intf_row->name);
+                smap_init(&hw_cfg_smap);
+                smap_add(&hw_cfg_smap,
+                        INTERFACE_HW_INTF_CONFIG_MAP_ENABLE,
+                        INTERFACE_HW_INTF_CONFIG_MAP_ENABLE_FALSE);
+                ovsrec_interface_set_hw_intf_config(intf_row, &hw_cfg_smap);
+                smap_destroy(&hw_cfg_smap);
+            }
+        }
+        rc++;
+    }
+
+    for(j = 0; j < port_data->n_interfaces; j++) {
+        found = 0;
+        for (i = 0; i < port_row->n_interfaces; i++) {
+            if((port_data->interface[j] == port_row->interfaces[i])) {
+                VLOG_DBG("both have the interfaces = %s\n", port_row->name);
+                found = 1;
+                break;
+            }
+        }
+        if(!found) {
+            /* Reset the inetrface admin state */
+            VLOG_DBG("deleting interface from port\n");
+            intf_row = port_data->interface[j];
+            intf = shash_find_data(&all_interfaces, intf_row->name);
+            if (port_parse_admin(&intf->port_admin, intf_row)) {
+                VLOG_INFO("Set the new admin state based on the port state\n");
+                intf->user_cfg.admin_state = intf_parse_admin(intf_row);
+                set_interface_config(intf_row, intf);
+            } else {
+                VLOG_DBG("reset interface %s\n", intf_row->name);
+                smap_init(&hw_cfg_smap);
+                smap_add(&hw_cfg_smap,
+                        INTERFACE_HW_INTF_CONFIG_MAP_ENABLE,
+                        INTERFACE_HW_INTF_CONFIG_MAP_ENABLE_FALSE);
+                ovsrec_interface_set_hw_intf_config(intf_row, &hw_cfg_smap);
+                smap_destroy(&hw_cfg_smap);
+            }
+            rc++;
+
+        }
+    }
+    return rc;
+}
+
+static int
+port_reconfigure(void)
+{
+    int rc = 0;
+    const struct ovsrec_port *port_row = NULL;
+    unsigned int new_idl_seqno = 0;
+    struct shash sh_idl_ports;
+    struct shash_node *sh_node = NULL, *sh_next = NULL;
+
+    port_row = ovsrec_port_first(idl);
+
+    /* if its not a port related operation then do not go ahead */
+    if ( (!OVSREC_IDL_ANY_TABLE_ROWS_MODIFIED(port_row, idl_seqno)) &&
+            (!OVSREC_IDL_ANY_TABLE_ROWS_DELETED(port_row, idl_seqno))  &&
+            (!OVSREC_IDL_ANY_TABLE_ROWS_INSERTED(port_row, idl_seqno)) )
+    {
+        VLOG_DBG("Not a port row change\n");
+        return rc;
+    }
+
+    new_idl_seqno = ovsdb_idl_get_seqno(idl);
+    if (new_idl_seqno == idl_seqno) {
+        /* There was no change in the dB. */
+        return 0;
+    }
+
+    /* Collect all the interfaces in the dB. */
+    shash_init(&sh_idl_ports);
+    OVSREC_PORT_FOR_EACH(port_row, idl) {
+        if (!shash_add_once(&sh_idl_ports, port_row->name, port_row)) {
+            VLOG_WARN("interface %s specified twice", port_row->name);
+        }
+    }
+
+    port_row = ovsrec_port_first(idl);
+    /* Add new Port. */
+    if (OVSREC_IDL_ANY_TABLE_ROWS_INSERTED(port_row, idl_seqno)) {
+        SHASH_FOR_EACH(sh_node, &sh_idl_ports) {
+            struct port_info *new_port = shash_find_data(&all_ports, sh_node->name);
+            if (!new_port) {
+                VLOG_DBG("Adding new port %s", sh_node->name);
+                add_new_port(sh_node->data);
+            }
+        }
+        /* Delete all interfaces of the deleted port.
+         * Use SHASH_FOR_EACH_SAFE since del_old_interface()
+         * will delete the current node. */
+    } else if (OVSREC_IDL_ANY_TABLE_ROWS_DELETED(port_row, idl_seqno)) {
+        SHASH_FOR_EACH_SAFE(sh_node, sh_next, &all_ports) {
+            struct ovsrec_port *port = shash_find_data(&sh_idl_ports, sh_node->name);
+            if (!port) {
+                VLOG_DBG("Deleting Port %s", sh_node->name);
+                del_old_port(sh_node);
+                rc++;
+                goto end;
+            }
+        }
+    }
+
+
+    /* Number of interfaces/admin state modified. So it could be
+       adding more interfaces to port or removing more interfaces from port*/
+    rc = add_del_interface_handle_port_config_mods();
+
+end:
+    /* Destroy the shash of the IDL interfaces. */
+    shash_destroy(&sh_idl_ports);
+
+    return rc;
+} /* intfd_reconfigure */
+
 static int
 intfd_reconfigure(void)
 {
@@ -1439,10 +1837,11 @@ intfd_reconfigure(void)
         /* There was no change in the dB. */
         return 0;
     }
+    VLOG_DBG("Intfd_reconfigure\n");
 
     /* Need MTU from subsystem table.
      *
-     * OPS_TODO: need to add multiple subsystem support
+     * FIXME: need to add multiple subsystem support
      *
      * For now, hard coding to look for "base" and continue to assume
      * that all interfaces belong to the "base" subsystem.
@@ -1494,8 +1893,11 @@ intfd_reconfigure(void)
         }
     }
 
+    rc = port_reconfigure();
+    VLOG_DBG("After port reconfigure rc = %d\n", rc);
+
     /* Process interface config changes. */
-    rc = handle_interfaces_config_mods(&sh_idl_interfaces);
+    rc |= handle_interfaces_config_mods(&sh_idl_interfaces);
 
     /* Update idl_seqno after handling all OVSDB updates. */
     idl_seqno = new_idl_seqno;
@@ -1553,6 +1955,7 @@ intfd_run(void)
     /* Update the local configuration and push any changes to the dB. */
     txn = ovsdb_idl_txn_create(idl);
     if (intfd_reconfigure()) {
+        VLOG_DBG("Commiting changes\n");
         /* Some OVSDB write needs to happen. */
         ovsdb_idl_txn_commit_block(txn);
     }
