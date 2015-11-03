@@ -63,6 +63,8 @@ The ops-intfd process examines the following columns in the Interface table rows
   The ops-intfd process examines the `split_parent` value so that it can locate the "parent" interface for an interface that is the individual 10-Gb interface in a QSFP+ module. It needs this information so that it can verify if the parent interface has been configured by the user for "split" operation. The user must configure the parent interface for "split" operation in order for any configuration of the "child" port to be considered valid.
 * split\_children
   The ops-intfd process examines the `split_children` to determine all of the "split" interfaces for a QSFP+ module.
+* subintf_parent
+  The ops-intfd process examines the `subintf_parent` column for accessing the parent interface's row for any hardware information. The dot1q encapsulation vlan id is kept as the key, and the parent's uuid is kept as the value for subintf_parent key:value pair.
 * hw\_intf\_info
   * pluggable
     The ops-intfd process examines this to determine if the data in pm\_info is of any interest.
