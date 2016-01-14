@@ -991,9 +991,13 @@ del_old_port(struct shash_node *sh_node)
         for(j = 0; j < port_data->n_interfaces; j++) {
             smap_init(&hw_cfg_smap);
             intf_row = port_data->interface[j];
-            VLOG_DBG("Port delete : reset interface %s\n", intf_row->name);
-            smap_add(&hw_cfg_smap, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE_FALSE);
-            ovsrec_interface_set_hw_intf_config(intf_row, &hw_cfg_smap);
+            /* Making sure not to reset an interface associated with another port */
+            if (!get_matching_port_row(intf_row->name))
+            {
+                VLOG_DBG("Port delete : reset interface %s\n", intf_row->name);
+                smap_add(&hw_cfg_smap, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE_FALSE);
+                ovsrec_interface_set_hw_intf_config(intf_row, &hw_cfg_smap);
+            }
             smap_destroy(&hw_cfg_smap);
         }
         free(port_data->name);

@@ -176,6 +176,7 @@ class adminstateupdateCTTest( OpsVsiTest ):
         cmd = "interface %s" % second_interface
         s1.cmdCLI(cmd)
         s1.cmdCLI("no lag 1")
+        s1.cmdCLI("shutdown")
         s1.cmdCLI("exit")
         s1.cmdCLI("exit")
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % second_interface
@@ -186,6 +187,10 @@ class adminstateupdateCTTest( OpsVsiTest ):
         s1.cmdCLI("configure terminal")
         s1.cmdCLI("no interface lag 1")
         s1.cmdCLI("exit")
+        s1.cmdCLI("interface 3")
+        s1.cmdCLI("shutdown")
+        s1.cmdCLI("interface 4")
+        s1.cmdCLI("shutdown")
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % third_interface
         output = s1.ovscmd(cmd)
         assert interface_down_string in output, 'Interface state does not change'
