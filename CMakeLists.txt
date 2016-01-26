@@ -22,7 +22,7 @@ set (SRC_DIR src)
 set (INCL_DIR include)
 
 # Define compile flags
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -Wall -Werror")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -Wall")#-Werror")
 
 include(FindPkgConfig)
 pkg_check_modules(CONFIG_YAML REQUIRED ops-config-yaml)
@@ -47,3 +47,5 @@ target_link_libraries (${INTFD} ${OPSUTILS_LIBRARIES} ${CONFIG_YAML_LIBRARIES} $
 # Rules to install ops-intfd binary in rootfs
 install(TARGETS ${INTFD}
     RUNTIME DESTINATION bin)
+
+add_subdirectory(src/cli)
