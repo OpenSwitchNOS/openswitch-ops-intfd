@@ -1088,7 +1088,9 @@ calc_intf_op_state_n_reason(struct iface *intf)
     intf->op_state.enabled = false;
     intf->op_state.reason = INTERFACE_ERROR_UNINITIALIZED;
 
-    if (STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_INTERNAL)) {
+    if ((STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_INTERNAL))
+       || (STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_VLANSUBINT))
+       || (STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_LOOPBACK))) {
         if (intf->user_cfg.admin_state == INTERFACE_USER_CONFIG_ADMIN_DOWN) {
             intf->op_state.reason = INTERFACE_ERROR_ADMIN_DOWN;
 
@@ -1348,7 +1350,9 @@ set_intf_hw_config_in_db(const struct ovsrec_interface *ifrow, struct iface *int
     smap_add(&smap, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE, tmp_str);
 
     if ((intf->op_state.enabled == true) &&
-        (!STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_INTERNAL))) {
+        ((!STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_INTERNAL)) ||
+        (!STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_VLANSUBINT))  ||
+        (!STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_LOOPBACK))))  {
 
         /* hw_intf_config:autoneg */
         tmp_str = INTERFACE_HW_INTF_CONFIG_MAP_AUTONEG_OFF;
