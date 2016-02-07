@@ -44,6 +44,9 @@ target_link_libraries (${INTFD} ${OPSUTILS_LIBRARIES} ${CONFIG_YAML_LIBRARIES} $
                        ${OVSDB_LIBRARIES} ${OPENSSL_LIBRARIES}
                        -lpthread -lrt)
 
+# Build ops-intfd cli shared libraries.
+add_subdirectory(src/cli)
+
 # Rules to install ops-intfd binary in rootfs
 install(TARGETS ${INTFD}
     RUNTIME DESTINATION bin)

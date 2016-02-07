@@ -191,6 +191,7 @@ class adminstateupdateCTTest( OpsVsiTest ):
         s1.cmdCLI("interface 4")
         s1.cmdCLI("shutdown")
         s1.cmdCLI("exit")
+        sleep(10)
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % third_interface
         output = s1.ovscmd(cmd)
         assert interface_down_string in output, 'Interface state does not change'
