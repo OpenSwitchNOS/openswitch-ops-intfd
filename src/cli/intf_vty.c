@@ -2202,9 +2202,13 @@ DEFUN (vtysh_interface,
   static char ifnumber[MAX_IFNAME_LENGTH];
 
   if (strchr(argv[0], '.'))
-     vty->node = SUB_INTERFACE_NODE;
+  {
+     return create_sub_interface(argv[0]);
+  }
   else
+  {
      vty->node = INTERFACE_NODE;
+  }
 
   if (VERIFY_VLAN_IFNAME(argv[0]) == 0) {
   vty->node = VLAN_INTERFACE_NODE;
