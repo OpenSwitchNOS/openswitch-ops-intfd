@@ -2369,6 +2369,8 @@ intf_ovsdb_init(void)
  */
 void cli_pre_init(void)
 {
+    vtysh_ret_val retval = e_vtysh_error;
+
     install_node (&interface_node, NULL);
     vtysh_install_default (INTERFACE_NODE);
     install_dyn_helpstr_funcptr("dyncb_helpstr_1G", dyncb_helpstr_speeds);
@@ -2377,6 +2379,16 @@ void cli_pre_init(void)
     install_dyn_helpstr_funcptr("dyncb_helpstr_mtu", dyncb_helpstr_mtu);
 
     intf_ovsdb_init();
+
+    retval = install_show_run_config_context(e_vtysh_interface_context,
+                                &vtysh_intf_context_clientcallback,
+                                &vtysh_intf_context_init, &vtysh_intf_context_exit);
+    if(e_vtysh_ok != retval)
+    {
+        vtysh_ovsdb_config_logmsg(VTYSH_OVSDB_CONFIG_ERR,
+                              "interface context unable to add config callback");
+        assert(0);
+    }
     return;
 }
 
