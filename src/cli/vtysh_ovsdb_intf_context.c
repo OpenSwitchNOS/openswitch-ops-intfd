@@ -39,13 +39,7 @@
 #include "vtysh/utils/intf_vtysh_utils.h"
 #include "vtysh/utils/vlan_vtysh_utils.h"
 
-#define PRINT_INTERFACE_NAME(name_written, p_msg, if_name)\
-  if (!(name_written))\
-  {\
-    vtysh_ovsdb_cli_print(p_msg, "interface %s", if_name);\
-    name_written = true;\
-  }
-
+static struct shash sorted_interfaces;
 
 typedef enum vtysh_ovsdb_intf_lldptxrx_enum
 {
@@ -62,7 +56,7 @@ typedef struct vtysh_ovsdb_intf_cfg_struct
   vtysh_ovsdb_intf_lldptxrx lldptxrx_state;
 } vtysh_ovsdb_intf_cfg;
 
-char intfcontextclientname[] = "vtysh_intf_context_clientcallback";
+char intfcontextclientname[] = "vtysh_intf_context_clientcallback_old";
 static vtysh_ret_val
 vtysh_ovsdb_intftable_parse_l3config(const char *if_name,
                                      vtysh_ovsdb_cbmsg_ptr p_msg,
@@ -265,14 +259,14 @@ is_parent_interface_split(const struct ovsrec_interface *parent_iface)
 }
 
 /*-----------------------------------------------------------------------------
-  | Function : vtysh_intf_context_clientcallback
+  | Function : vtysh_intf_context_clientcallback_old
   | Responsibility : client callback routine
   | Parameters :
   |     void *p_private1, *p_private2: void type object typecast to required
   | Return : void
   -----------------------------------------------------------------------------*/
 vtysh_ret_val
-vtysh_intf_context_clientcallback(void *p_private)
+vtysh_intf_context_clientcallback_old(void *p_private)
 {
    vtysh_ovsdb_cbmsg_ptr p_msg = (vtysh_ovsdb_cbmsg *)p_private;
    const struct ovsrec_interface *ifrow;
@@ -589,7 +583,7 @@ vtysh_init_intf_context_clients()
 
   client.p_client_name = intfcontextclientname;
   client.client_id = e_vtysh_interface_context_config;
-  client.p_callback = &vtysh_intf_context_clientcallback;
+  client.p_callback = &vtysh_intf_context_clientcallback_old;
   retval = vtysh_context_addclient(e_vtysh_interface_context, e_vtysh_interface_context_config, &client);
   if(e_vtysh_ok != retval)
   {
@@ -599,4 +593,169 @@ vtysh_init_intf_context_clients()
     return retval;
   }
   return e_vtysh_ok;
+}
+
+struct feature_sorted_list *
+vtysh_intf_context_init(void *p_private)
+{
+   vtysh_ovsdb_cbmsg_ptr p_msg = (vtysh_ovsdb_cbmsg *)p_private;
+   const struct ovsrec_interface *ifrow;
+   const struct shash_node **nodes;
+   struct feature_sorted_list *sorted_list = NULL;
+   int count;
+
+   shash_init(&sorted_interfaces);
+
+   OVSREC_INTERFACE_FOR_EACH(ifrow, p_msg->idl)
+   {
+       shash_add(&sorted_interfaces, ifrow->name, (void *)ifrow);
+   }
+
+   nodes = sort_interface(&sorted_interfaces);
+   count = shash_count(&sorted_interfaces);
+   sorted_list = (struct feature_sorted_list *)
+                 malloc (sizeof(struct feature_sorted_list));
+   if (sorted_list != NULL) {
+       sorted_list->nodes = nodes;
+       sorted_list->count = count;
+   }
+
+   return sorted_list;
+}
+
+vtysh_ret_val
+vtysh_intf_context_clientcallback(void *p_private)
+{
+   vtysh_ovsdb_cbmsg_ptr p_msg = (vtysh_ovsdb_cbmsg *)p_private;
+   const struct ovsrec_interface *ifrow = (struct ovsrec_interface *)p_msg->feature_row;
+   const char *cur_state =NULL;
+   int64_t vlan_number = 0;
+
+   vtysh_ovsdb_intf_cfg intfcfg;
+
+   /* set to default values */
+   intfcfg.disp_intf_cfg = false;
+
+   if (ifrow && !strcmp(ifrow->name, DEFAULT_BRIDGE_NAME)) {
+       p_msg->skip_subcontext_list = true;
+       return e_vtysh_ok;
+   }
+
+   if (ifrow->split_parent != NULL &&
+           !is_parent_interface_split(ifrow->split_parent)) {
+       /* Parent is not split. Don't display child interfaces. */
+       p_msg->skip_subcontext_list = true;
+       return e_vtysh_ok;
+   }
+
+   /* TODO: Will be taken as part of sub-interface code modularization */
+   if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_LOOPBACK) == 0)
+   {
+       vtysh_ovsdb_cli_print(p_msg, "interface loopback %s",
+               ifrow->name + 2);
+       intfcfg.disp_intf_cfg = true;
+       vtysh_ovsdb_intftable_parse_l3config(ifrow->name, p_msg,
+               intfcfg.disp_intf_cfg);
+       p_msg->skip_subcontext_list = true;
+       return e_vtysh_ok;
+   }
+   if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_VLANSUBINT) == 0)
+   {
+       PRINT_INT_HEADER_IN_SHOW_RUN;
+   }
+
+   cur_state = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_ADMIN);
+   if ((NULL != cur_state)
+         && (strcmp(cur_state, OVSREC_INTERFACE_USER_CONFIG_ADMIN_UP) == 0))
+   {
+      PRINT_INT_HEADER_IN_SHOW_RUN;
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "no shutdown");
+   }
+
+   if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_VLANSUBINT) == 0)
+   {
+       if (0 < ifrow->n_subintf_parent)
+       {
+           vlan_number = ifrow->key_subintf_parent[0];
+       }
+       if (0 != vlan_number)
+       {
+           vtysh_ovsdb_cli_print(p_msg, "%4s%s%d", "",
+                   "encapsulation dot1Q ", vlan_number);
+       }
+   }
+
+   cur_state = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_LANE_SPLIT);
+
+   if ((NULL != cur_state)
+         && (strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_LANE_SPLIT_SPLIT) == 0))
+   {
+       PRINT_INT_HEADER_IN_SHOW_RUN;
+       vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "split");
+   }
+
+   cur_state = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_SPEEDS);
+   if ((NULL != cur_state)
+         && (strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_SPEEDS_DEFAULT) != 0))
+   {
+      PRINT_INT_HEADER_IN_SHOW_RUN;
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s %s", "", "speed", cur_state);
+   }
+
+   cur_state = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_MTU);
+   if ((NULL != cur_state)
+         && (strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_MTU_DEFAULT) != 0))
+   {
+      PRINT_INT_HEADER_IN_SHOW_RUN;
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s %s", "", "mtu", cur_state);
+   }
+
+   cur_state = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_DUPLEX);
+   if ((NULL != cur_state)
+         && (strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_DUPLEX_FULL) != 0))
+   {
+      PRINT_INT_HEADER_IN_SHOW_RUN;
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s %s", "", "duplex", cur_state);
+   }
+
+
+   cur_state = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_PAUSE);
+   if ((NULL != cur_state)
+         && (strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_PAUSE_NONE) != 0))
+   {
+      PRINT_INT_HEADER_IN_SHOW_RUN;
+      if(strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_PAUSE_RX) == 0)
+      {
+         vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "flowcontrol receive on");
+      }
+      else if(strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_PAUSE_TX) == 0)
+      {
+         vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "flowcontrol send on");
+      }
+      else
+      {
+         vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "flowcontrol receive on");
+         vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "flowcontrol send on");
+      }
+   }
+
+   cur_state = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_AUTONEG);
+   if ((NULL != cur_state)
+         && (strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_AUTONEG_DEFAULT) != 0))
+   {
+      PRINT_INT_HEADER_IN_SHOW_RUN;
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s %s", "", "autonegotiation", cur_state);
+   }
+
+   p_msg->disp_header_cfg = intfcfg.disp_intf_cfg;
+
+   return e_vtysh_ok;
+}
+
+void
+vtysh_intf_context_exit(struct feature_sorted_list *list)
+{
+   shash_destroy(&sorted_interfaces);
+   free(list->nodes);
+   free(list);
 }

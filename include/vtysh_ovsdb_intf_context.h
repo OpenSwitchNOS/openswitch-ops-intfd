@@ -27,6 +27,10 @@
 #define VTYSH_OVSDB_INTF_CONTEXT_H
 
 int vtysh_init_intf_context_clients();
+vtysh_ret_val vtysh_intf_context_clientcallback_old(void *p_private);
 vtysh_ret_val vtysh_intf_context_clientcallback(void *p_private);
+struct feature_sorted_list * vtysh_intf_context_init(void *p_private);
+void vtysh_intf_context_exit(struct feature_sorted_list * head);
+
 
 #endif /* VTYSH_OVSDB_INTF_CONTEXT_H */
