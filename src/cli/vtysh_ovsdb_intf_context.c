@@ -569,6 +569,9 @@ vtysh_ovsdb_intftable_parse_l3config(const char *if_name,
           vtysh_ovsdb_cli_print(p_msg, "%4s%s%s%s", "", "ipv6 address ",
                   port_row->ip6_address_secondary[i], " secondary");
         }
+        if (smap_get(&port_row->other_config, PORT_OTHER_CONFIG_MAP_PROXY_ARP_ENABLED)) {
+            vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "ip proxy-arp");
+        }
       }
     }
   }

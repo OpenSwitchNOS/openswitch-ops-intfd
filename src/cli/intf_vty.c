@@ -1118,6 +1118,10 @@ parse_l3config(const char *if_name, struct vty *vty)
                         port_row->ip6_address_secondary[i], " secondary",
                         VTY_NEWLINE);
             }
+            if (smap_get(&port_row->other_config,
+                         PORT_OTHER_CONFIG_MAP_PROXY_ARP_ENABLED)) {
+                vty_out(vty, "%3s%s%s", "", "ip proxy-arp", VTY_NEWLINE);
+            }
         }
     }
     return 0;
@@ -1896,10 +1900,11 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         int flags, int argc, const char *argv[], bool brief)
 {
     const struct ovsrec_interface *ifrow = NULL;
-    const char *cur_state =NULL;
+    const char *cur_state = NULL;
     struct shash sorted_interfaces;
     const struct shash_node **nodes;
     int idx, count;
+    const struct ovsrec_port *port_row;
 
     const struct ovsdb_datum *datum;
     static char *interface_statistics_keys [] = {
@@ -2037,6 +2042,13 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
             vty_out (vty, " Hardware: Ethernet, MAC Address: %s %s",
                     ifrow->mac_in_use, VTY_NEWLINE);
+
+            port_row = port_find(ifrow->name);
+            if (port_row && smap_get(&port_row->other_config,
+                  PORT_OTHER_CONFIG_MAP_PROXY_ARP_ENABLED))
+            {
+                vty_out(vty, " Proxy ARP is enabled%s", VTY_NEWLINE);
+            }
 
             /* Displaying ipv4 and ipv6 primary and secondary addresses*/
             show_ip_addresses(ifrow->name, vty);
