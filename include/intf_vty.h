@@ -28,6 +28,7 @@
 #define INTERFACE_USER_CONFIG_MAP_PAUSE_DEFAULT                 "none"
 #define INTERFACE_USER_CONFIG_MAP_DUPLEX_DEFAULT                "full"
 #define INTERFACE_USER_CONFIG_MAP_SPEEDS_DEFAULT                "auto"
+#define VLAN_MODE_ROUTED                                        "routed"
 
 void cli_pre_init(void);
 void cli_post_init(void);

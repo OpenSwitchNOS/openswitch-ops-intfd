@@ -1725,7 +1725,6 @@ show_lacp_interfaces_brief (struct vty *vty, const char *argv[])
 {
     const struct ovsrec_port *lag_port = NULL;
     const struct ovsrec_interface *if_row = NULL;
-    const char *aggregate_mode = NULL;
     const struct ovsdb_datum *datum;
 
     int64_t lag_speed = 0;
@@ -1746,14 +1745,30 @@ show_lacp_interfaces_brief (struct vty *vty, const char *argv[])
         }
 
         vty_out(vty, " %-12s ", lag_port->name);
-        vty_out(vty, "--      "); /*VLAN */
+        /* Display vid for an lag interface */
+        if (lag_port->tag != NULL ) {
+            vty_out(vty, "%-8ld", *lag_port->tag); /*vid */
+        }
+        else {
+            vty_out(vty, "--      "); /*vid */
+        }
         vty_out(vty, "--  "); /*type */
 
-        aggregate_mode = lag_port->lacp;
-        if(aggregate_mode)
-            vty_out(vty, "%-7s ", aggregate_mode); /* mode -  active, passive*/
-        else
-            vty_out(vty, "--      "); /* mode -  active, passive */
+        /* Display vlan mode for an lag interface */
+        if (lag_port->vlan_mode == NULL) {
+            vty_out(vty, "--      ");
+        }
+        else {
+            /* Access mode */
+            if (strncmp(lag_port->vlan_mode, OVSREC_PORT_VLAN_MODE_ACCESS,
+                     strlen(OVSREC_PORT_VLAN_MODE_ACCESS)) == 0) {
+                vty_out(vty, "%-8s", OVSREC_PORT_VLAN_MODE_ACCESS); /*Access mode */
+             }
+             else {
+             /* Trunk mode - trunk, native-tagged or native-untagged*/
+                vty_out(vty, "%-8s", OVSREC_PORT_VLAN_MODE_TRUNK); /* Trunk mode */
+             }
+        }
 
         vty_out(vty, "--     ");/* Status */
         vty_out(vty, "--                       "); /*Reason*/
@@ -1974,11 +1989,40 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
         if (brief)
         {
-            /* Display the brief information */
+            const struct ovsrec_port *port_row;
+            port_row = port_check_and_add(ifrow->name, false, false, NULL);
             vty_out (vty, " %-12s ", ifrow->name);
-            vty_out(vty, "--      "); /*vVLAN */
-            vty_out(vty, "eth  "); /*type */
-            vty_out(vty, "--     "); /* mode - routed or not */
+
+            /* Display vlan mode and vid for an L3 interface,
+             * port table by default is not populated unless
+             * entered into interface mode
+             */
+            if (port_row == NULL ||
+                (port_row->tag == NULL && port_row->vlan_mode == NULL)) {
+                vty_out(vty, "--      "); /*vid */
+                vty_out(vty, "eth  "); /*type */
+                vty_out(vty, "%-7s", VLAN_MODE_ROUTED);
+            }
+            /* Display vlan mode and vid for interface VLAN*/
+            else if (port_row->tag != NULL && port_row->vlan_mode == NULL) {
+                vty_out(vty, "--      "); /*vid */
+                vty_out(vty, "eth  "); /*type */
+                vty_out(vty, "     "); /* mode - routed or not */
+            }
+            /* Display vlan mode and vid for an l2 interface */
+            else if (port_row->tag != NULL && port_row->vlan_mode != NULL) {
+                vty_out(vty, "%-8ld", *port_row->tag); /*vid */
+                vty_out(vty, "eth  "); /*type */
+                if (strncmp(port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_ACCESS,
+                             strlen(OVSREC_PORT_VLAN_MODE_ACCESS)) == 0){
+                    /* Default in access mode */
+                    vty_out(vty, "%-7s", OVSREC_PORT_VLAN_MODE_ACCESS);
+                }
+                else {
+                    /* Trunk mode - trunk, native-tagged or native-untagged*/
+                    vty_out(vty, "%-7s", OVSREC_PORT_VLAN_MODE_TRUNK);
+                }
+            }
 
             vty_out (vty, "%-6s ", ifrow->link_state);
 
