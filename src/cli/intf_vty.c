@@ -44,6 +44,7 @@
 #include "smap.h"
 #include "openvswitch/vlog.h"
 #include "openswitch-idl.h"
+#include "qos_intf.h"
 #include "vtysh/vtysh_ovsdb_if.h"
 #include "vtysh/vtysh_ovsdb_config.h"
 #include "vtysh_ovsdb_intf_context.h"
@@ -59,7 +60,6 @@ extern struct ovsdb_idl *idl;
 extern int
 create_sub_interface(const char* subifname);
 #define INTF_NAME_SIZE 50
-
 
 static struct cmd_node interface_node =
    {
@@ -1514,6 +1514,12 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
             vty_out(vty, "   duplex %s %s", cur_state, VTY_NEWLINE);
         }
 
+        const struct ovsrec_port* port_row = port_find(row->name);
+        qos_trust_port_show_running_config(port_row, &bPrinted, "interface");
+        qos_apply_port_show_running_config(port_row, &bPrinted, "interface");
+        qos_cos_port_show_running_config(port_row, &bPrinted, "interface");
+        qos_dscp_port_show_running_config(port_row, &bPrinted, "interface");
+
         cur_state = smap_get(&row->user_config,
                 INTERFACE_USER_CONFIG_MAP_PAUSE);
         if ((NULL != cur_state)
@@ -2031,7 +2037,7 @@ show_lacp_interfaces_brief (struct vty *vty, const char *argv[])
 
     OVSREC_PORT_FOR_EACH(lag_port, idl)
     {
-        if ((NULL != argv[0]) && (0 != strcmp(argv[0],lag_port->name)))
+        if ((NULL != argv[0]) && (0 != strcmp(argv[0], lag_port->name)))
         {
             continue;
         }
@@ -2077,7 +2083,7 @@ show_lacp_interfaces_brief (struct vty *vty, const char *argv[])
             if_row = lag_port->interfaces[interface_index];
 
             datum = ovsrec_interface_get_link_speed(if_row, OVSDB_TYPE_INTEGER);
-            if ((NULL!=datum) && (datum->n >0))
+            if ((NULL != datum) && (datum->n >0))
             {
                 lag_speed += datum->keys[0].integer;
             }
@@ -2092,6 +2098,110 @@ show_lacp_interfaces_brief (struct vty *vty, const char *argv[])
         }
 
         vty_out(vty, "   -- ");  /* Port channel */
+        vty_out(vty, "%s", VTY_NEWLINE);
+    }
+}
+
+void
+show_lacp_queue_stats (struct vty *vty, char* interface_queue_stats_keys[],
+                                                        const char *argv[])
+{
+    const struct ovsrec_port *lag_port = NULL;
+    const struct ovsrec_interface *if_row = NULL;
+    const struct ovsdb_datum *datum;
+
+    int64_t lag_speed = 0;
+
+    // Indexes for loops
+    int interface_index, q = 0;
+
+    const struct ovsdb_datum *datum_array[QOS_QUEUE_STATS];
+    // Array to keep the statistics for each lag while adding the
+    // stats for each interface in the lag.
+    int64_t lag_queue_stats[QOS_QUEUE_STATS][QOS_MAX_QUEUES] = {{0}};
+
+    OVSREC_PORT_FOR_EACH(lag_port, idl)
+    {
+        if ((NULL != argv[0]) && (0 != strcmp(argv[0],lag_port->name)))
+        {
+            continue;
+        }
+
+        if(strncmp(lag_port->name, LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) != 0)
+        {
+            continue;
+        }
+
+        // Reinitialize queue stats aggregator array
+        memset (lag_queue_stats, 0, sizeof lag_queue_stats);
+
+        vty_out(vty, "Aggregate-name %s %s", lag_port->name, VTY_NEWLINE);
+        vty_out(vty, " Aggregated-interfaces : ");
+
+        lag_speed = 0;
+        for (interface_index = 0; interface_index < lag_port->n_interfaces; interface_index++)
+        {
+            if_row = lag_port->interfaces[interface_index];
+            vty_out(vty, "%s ", if_row->name);
+
+            datum = ovsrec_interface_get_link_speed(if_row, OVSDB_TYPE_INTEGER);
+            if ((NULL!=datum) && (datum->n >0))
+            {
+                lag_speed += datum->keys[0].integer;
+            }
+
+            datum_array[0] = ovsrec_interface_get_queue_tx_bytes(if_row,
+                                 OVSDB_TYPE_INTEGER, OVSDB_TYPE_INTEGER);
+            if ((NULL == datum_array[0]) || (datum_array[0]->n == 0))
+            {
+                vty_out(vty, " No queue tx bytes statistics available%s", VTY_NEWLINE);
+                vty_out(vty, "%s", VTY_NEWLINE);
+                continue;
+            }
+
+            datum_array[1] = ovsrec_interface_get_queue_tx_packets(if_row,
+                                   OVSDB_TYPE_INTEGER, OVSDB_TYPE_INTEGER);
+            if ((NULL == datum_array[1]) || (datum_array[1]->n == 0))
+            {
+                vty_out(vty, " No queue tx packets statistics available%s", VTY_NEWLINE);
+                vty_out(vty, "%s", VTY_NEWLINE);
+                continue;
+            }
+
+            datum_array[2] = ovsrec_interface_get_queue_tx_errors(if_row,
+                                  OVSDB_TYPE_INTEGER, OVSDB_TYPE_INTEGER);
+
+            if ((NULL==datum_array[2]) || (datum_array[2]->n == 0))
+            {
+                vty_out(vty, " No queue tx errors statistics available%s", VTY_NEWLINE);
+                vty_out(vty, "%s", VTY_NEWLINE);
+                continue;
+            }
+
+            for (q=0; q<QOS_MAX_QUEUES; q++)
+            {
+                lag_queue_stats[0][q] += datum_array[0]->values[q].integer;
+                lag_queue_stats[1][q] += datum_array[1]->values[q].integer;
+                lag_queue_stats[2][q] += datum_array[2]->values[q].integer;
+            }
+
+        }
+
+        vty_out(vty, "%s", VTY_NEWLINE);
+        vty_out(vty, " Speed %ld Mb/s %s",lag_speed/1000000 , VTY_NEWLINE);
+        vty_out(vty, "     %20s  %20s  %20s", interface_queue_stats_keys[0],
+                                              interface_queue_stats_keys[1],
+                                              interface_queue_stats_keys[2]);
+        vty_out(vty, "%s", VTY_NEWLINE);
+
+        for (q=0; q<QOS_MAX_QUEUES; q++)
+        {
+            vty_out(vty, " Q%d", q);
+            vty_out(vty, "  %20ld", lag_queue_stats[0][q]);
+            vty_out(vty, "  %20ld", lag_queue_stats[1][q]);
+            vty_out(vty, "  %20ld", lag_queue_stats[2][q]);
+            vty_out(vty, "%s", VTY_NEWLINE);
+        }
         vty_out(vty, "%s", VTY_NEWLINE);
     }
 }
@@ -2387,6 +2497,118 @@ show_interface_status(struct vty *vty, const const struct ovsrec_interface *ifro
 }
 
 int
+cli_show_interface_queue_stats (struct cmd_element *self, struct vty *vty,
+                                         int argc, const char *argv[])
+{
+    const struct ovsrec_interface *ifrow = NULL;
+    struct shash sorted_interfaces;
+    const struct shash_node **nodes;
+    int idx, count, q = 0;
+
+    static char *interface_queue_stats_keys [] = {
+        "Tx Bytes",
+        "Tx Packets",
+        "Tx Errors"
+    };
+
+    const struct ovsdb_datum *datum[QOS_QUEUE_STATS];
+
+    shash_init(&sorted_interfaces);
+
+    OVSREC_INTERFACE_FOR_EACH(ifrow, idl)
+    {
+        if ((NULL != argv[0]) && (0 != strcmp(argv[0], ifrow->name)))
+        {
+            continue;
+        }
+
+        if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_SYSTEM) != 0)
+        {
+            continue;
+        }
+
+        shash_add(&sorted_interfaces, ifrow->name, (void *)ifrow);
+    }
+
+    nodes = sort_interface(&sorted_interfaces);
+
+    count = shash_count(&sorted_interfaces);
+
+    for (idx = 0; idx < count; idx++)
+    {
+        ifrow = (const struct ovsrec_interface *)nodes[idx]->data;
+
+
+        vty_out (vty, "Interface %s is %s ", ifrow->name, ifrow->link_state);
+        const char *state_value = smap_get(&ifrow->user_config,
+                               INTERFACE_USER_CONFIG_MAP_ADMIN);
+        if ((NULL != state_value) &&
+                (strcmp(state_value,
+                        OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN) == 0))
+        {
+            vty_out (vty, "(Administratively down) %s", VTY_NEWLINE);
+            vty_out (vty, " Admin state is down%s",
+                        VTY_NEWLINE);
+        }
+        else
+        {
+            vty_out (vty, "%s", VTY_NEWLINE);
+            vty_out (vty, " Admin state is up%s", VTY_NEWLINE);
+        }
+
+        datum[0] = ovsrec_interface_get_queue_tx_bytes(ifrow,
+                       OVSDB_TYPE_INTEGER, OVSDB_TYPE_INTEGER);
+        if ((NULL == datum[0]) || (datum[0]->n == 0))
+        {
+            vty_out(vty, " No queue tx bytes statistics available%s", VTY_NEWLINE);
+            vty_out(vty, "%s", VTY_NEWLINE);
+            continue;
+        }
+
+        datum[1] = ovsrec_interface_get_queue_tx_packets(ifrow,
+                       OVSDB_TYPE_INTEGER, OVSDB_TYPE_INTEGER);
+        if ((NULL==datum[1]) || (datum[1]->n == 0))
+        {
+            vty_out(vty, " No queue tx packets statistics available%s", VTY_NEWLINE);
+            vty_out(vty, "%s", VTY_NEWLINE);
+            continue;
+        }
+
+        datum[2] = ovsrec_interface_get_queue_tx_errors(ifrow,
+                       OVSDB_TYPE_INTEGER, OVSDB_TYPE_INTEGER);
+
+        if ((NULL==datum[2]) || (datum[2]->n == 0))
+        {
+            vty_out(vty, " No queue tx errors statistics available%s", VTY_NEWLINE);
+            vty_out(vty, "%s", VTY_NEWLINE);
+            continue;
+        }
+
+        vty_out(vty, "     %20s  %20s  %20s", interface_queue_stats_keys[0],
+                                             interface_queue_stats_keys[1],
+                                             interface_queue_stats_keys[2]);
+        vty_out(vty, "%s", VTY_NEWLINE);
+
+        for (q=0; q<QOS_MAX_QUEUES; q++)
+        {
+            vty_out(vty, " Q%d", q);
+            vty_out(vty, "  %20ld", datum[0]->values[q].integer);
+            vty_out(vty, "  %20ld", datum[1]->values[q].integer);
+            vty_out(vty, "  %20ld", datum[2]->values[q].integer);
+            vty_out(vty, "%s", VTY_NEWLINE);
+        }
+        vty_out(vty, "%s", VTY_NEWLINE);
+    }
+
+    shash_destroy(&sorted_interfaces);
+    free(nodes);
+
+    show_lacp_queue_stats (vty, interface_queue_stats_keys, argv);
+
+    return CMD_SUCCESS;
+}
+
+int
 cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         int flags, int argc, const char *argv[], bool brief)
 {
@@ -2541,6 +2763,12 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
                 {
                     vty_out(vty, " Half-duplex %s", VTY_NEWLINE);
                 }
+
+                const struct ovsrec_port* port_row = port_find(ifrow->name);
+                qos_trust_port_show(port_row);
+                qos_apply_port_show(port_row);
+                qos_cos_port_show(port_row);
+                qos_dscp_port_show(port_row);
 
                 intVal = 0;
                 datum = ovsrec_interface_get_link_speed(ifrow, OVSDB_TYPE_INTEGER);
@@ -2747,12 +2975,13 @@ DEFUN (no_vtysh_interface,
 
 DEFUN (cli_intf_show_intferface_ifname,
         cli_intf_show_intferface_ifname_cmd,
-        "show interface IFNAME {brief|transceiver}",
+        "show interface IFNAME {brief|transceiver|queues}",
         SHOW_STR
         INTERFACE_STR
         IFNAME_STR
         "Show brief info of interface\n"
-        "Show transceiver info for interface\n")
+        "Show transceiver info for interface\n"
+        "Show tx queue info for interface\n")
 {
     bool brief = false;
     bool transceiver = false;
@@ -2766,6 +2995,12 @@ DEFUN (cli_intf_show_intferface_ifname,
     {
         transceiver = true;
     }
+
+    if ((NULL != argv[3]) && (strcmp(argv[3], "queues") == 0))
+    {
+        return (cli_show_interface_queue_stats (self, vty, argc, argv));
+    }
+
     if (transceiver)
     {
         rc = cli_show_xvr_exec (self, vty, vty_flags, argc, argv, brief);
@@ -2780,11 +3015,12 @@ DEFUN (cli_intf_show_intferface_ifname,
 
 DEFUN (cli_intf_show_intferface_ifname_br,
         cli_intf_show_intferface_ifname_br_cmd,
-        "show interface {brief|transceiver}",
+        "show interface {brief|transceiver|queues}",
         SHOW_STR
         INTERFACE_STR
         "Show brief info of interfaces\n"
-        "Show transceiver info for interfaces\n")
+        "Show transceiver info for interfaces\n"
+        "Show tx queue info for interfaces\n")
 {
     bool brief = false;
     bool transceiver = false;
@@ -2798,6 +3034,12 @@ DEFUN (cli_intf_show_intferface_ifname_br,
     {
         transceiver = true;
     }
+
+    if ((NULL != argv[2]) && (strcmp(argv[2], "queues") == 0))
+    {
+        return (cli_show_interface_queue_stats (self, vty, argc, argv));
+    }
+
     argv[0] = NULL;
 
     if (transceiver)
@@ -3064,6 +3306,9 @@ intf_ovsdb_init(void)
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_link_speed);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_pause);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_statistics);
+    ovsdb_idl_add_column(idl, &ovsrec_interface_col_queue_tx_bytes);
+    ovsdb_idl_add_column(idl, &ovsrec_interface_col_queue_tx_packets);
+    ovsdb_idl_add_column(idl, &ovsrec_interface_col_queue_tx_errors);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_type);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_hw_intf_info);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_pm_info);

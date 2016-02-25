@@ -30,6 +30,7 @@
 #include "vtysh/vector.h"
 #include "vswitch-idl.h"
 #include "openswitch-idl.h"
+#include "qos_intf.h"
 #include "vtysh/command.h"
 #include "vtysh/vtysh_ovsdb_if.h"
 #include "vtysh/vtysh_ovsdb_config.h"
@@ -267,6 +268,12 @@ vtysh_intf_context_clientcallback(void *p_private)
       PRINT_INT_HEADER_IN_SHOW_RUN;
       vtysh_ovsdb_cli_print(p_msg, "%4s%s %s", "", "autonegotiation", cur_state);
    }
+
+   const struct ovsrec_port *qos_port_row = port_lookup(ifrow->name, p_msg->idl);
+   qos_trust_port_show_running_config(qos_port_row, &intfcfg.disp_intf_cfg, "interface");
+   qos_apply_port_show_running_config(qos_port_row, &intfcfg.disp_intf_cfg, "interface");
+   qos_cos_port_show_running_config(qos_port_row, &intfcfg.disp_intf_cfg, "interface");
+   qos_dscp_port_show_running_config(qos_port_row, &intfcfg.disp_intf_cfg, "interface");
 
    p_msg->disp_header_cfg = intfcfg.disp_intf_cfg;
 
