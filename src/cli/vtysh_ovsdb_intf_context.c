@@ -405,6 +405,12 @@ vtysh_intf_context_clientcallback_old(void *p_private)
         vtysh_ovsdb_cli_print(p_msg, "%4s%s %s", "", "autonegotiation", cur_state);
      }
 
+     const struct ovsrec_port *port_row = port_lookup(ifrow->name, p_msg->idl);
+     qos_trust_port_show_running_config(port_row, &intfcfg.disp_intf_cfg, "interface");
+     qos_apply_port_show_running_config(port_row, &intfcfg.disp_intf_cfg, "interface");
+     qos_cos_port_show_running_config(port_row, &intfcfg.disp_intf_cfg, "interface");
+     qos_dscp_port_show_running_config(port_row, &intfcfg.disp_intf_cfg, "interface");
+
      /* parse interface other config */
      vtysh_ovsdb_intftable_parse_othercfg(&ifrow->other_config, &intfcfg);
 
