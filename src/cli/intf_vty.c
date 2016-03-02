@@ -1253,10 +1253,13 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
 {
     const struct ovsrec_interface *row = NULL;
     const struct ovsrec_dhcp_relay *row_serv = NULL;
+    const struct ovsrec_udp_bcast_forwarder_server *udp_row_serv = NULL;
+    const struct ovsdb_datum *datum = NULL;
     const char *cur_state =NULL;
     bool bPrinted = false;
     size_t i = 0;
-    char *helper_ip = NULL;
+    int udp_dport = 0;
+    char *helper_ip = NULL, *serverip = NULL;
 
     OVSREC_INTERFACE_FOR_EACH(row, idl)
     {
@@ -1380,6 +1383,32 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
                         helper_ip = row_serv->ipv4_ucast_server[i];
                         vty_out(vty, "   ip helper-address %s%s",
                                      helper_ip, VTY_NEWLINE);
+                    }
+                }
+            }
+        }
+
+        /* Displaying the UDP forward-protocol addresses */
+        OVSREC_UDP_BCAST_FORWARDER_SERVER_FOR_EACH (udp_row_serv, idl)
+        {
+            if (udp_row_serv->src_port)
+            {
+                if (!strcmp(udp_row_serv->src_port->name, row->name))
+                {
+                    for (i = 0; i < udp_row_serv->n_ipv4_ucast_server; i++)
+                    {
+                        serverip = udp_row_serv->ipv4_ucast_server[i];
+                        datum =
+                            ovsrec_udp_bcast_forwarder_server_get_udp_dport
+                                    (udp_row_serv, OVSDB_TYPE_INTEGER);
+                        if ((NULL != datum) && (datum->n > 0))
+                        {
+                            udp_dport = datum->keys[0].integer;
+                        }
+                        /* UDP Broadcast Forwarder information. */
+                        vty_out(vty, "%4s%s %s %d%s", "",
+                            "ip forward-protocol udp", serverip, udp_dport,
+                            VTY_NEWLINE);
                     }
                 }
             }
