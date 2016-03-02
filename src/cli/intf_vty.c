@@ -1247,6 +1247,37 @@ parse_lag(struct vty *vty)
     return 0;
 }
 
+/* Given a port name, display 'no sflow enable' if it is disabled in CLI on
+ * an interface. */
+void
+show_sflow_config(const char *name, const char *align)
+{
+    const struct ovsrec_port *port_row = NULL;
+    struct smap other_config = SMAP_INITIALIZER(&other_config);
+    const char *value;
+
+    if (name == NULL) {
+        VLOG_ERR("Null interface name passed. Can't display sflow info on it.");
+        return;
+    }
+
+    port_row = port_find(name);
+    if (port_row == NULL) {
+        VLOG_DBG("No port entry found for %s. Can't display sflow info on it.", name);
+        return;
+    }
+
+    smap_clone(&other_config, &port_row->other_config);
+
+    if ((value = smap_get(&other_config, PORT_OTHER_CONFIG_SFLOW_PER_INTERFACE_KEY_STR))) {
+        if (strcmp(value, PORT_OTHER_CONFIG_SFLOW_PER_INTERFACE_VALUE_FALSE) == 0) {
+            vty_out(vty, "%sno sflow enable%s", align?align:" ", VTY_NEWLINE);
+        }
+    }
+
+    smap_destroy(&other_config);
+}
+
 static int
 cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
         int flags, int argc, const char *argv[])
@@ -1360,6 +1391,9 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
         {
             PRINT_INT_HEADER_IN_SHOW_RUN;
         }
+
+        /* show sFlow config, if present */
+        show_sflow_config(row->name, "   ");
 
         parse_l3config(row->name, vty);
 
@@ -2190,6 +2224,9 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
                 vty_out(vty, " Input flow-control is off, "
                         "output flow-control is off%s",VTY_NEWLINE);
             }
+
+            /* show sFlow config, if present */
+            show_sflow_config(ifrow->name, " ");
 
             datum = ovsrec_interface_get_statistics(ifrow,
                     OVSDB_TYPE_STRING, OVSDB_TYPE_INTEGER);
