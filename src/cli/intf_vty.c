@@ -1378,8 +1378,8 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
                     for (i = 0; i < row_serv->n_ipv4_ucast_server; i++)
                     {
                         helper_ip = row_serv->ipv4_ucast_server[i];
-                        vty_out(vty, "%4s ip helper-address %s%s",
-                                        "", helper_ip, VTY_NEWLINE);
+                        vty_out(vty, "   ip helper-address %s%s",
+                                     helper_ip, VTY_NEWLINE);
                     }
                 }
             }
