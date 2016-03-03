@@ -3355,7 +3355,6 @@ intf_ovsdb_init(void)
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_lldp_statistics);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_other_config);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_link_state);
-    ovsdb_idl_add_column(idl, &ovsrec_interface_col_lldp_neighbor_info);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_user_config);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_link_state);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_admin_state);
