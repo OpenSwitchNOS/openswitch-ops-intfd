@@ -243,3 +243,35 @@ Verify fixed ports (not pluggable) are handled correctly
 All verifications pass.
 #### Test Fail Criteria ####
 One or more verifications fail.
+
+##  LAG shutdown/no shutdown
+### Objective
+Verify shutdown/no shutdown commands works correctly.
+### Requirements
+ - Virtual Mininet Test Setup
+
+### Setup
+#### Topology Diagram
+```
+[h1]<-->[s1]
+```
+### Description
+1. Create interface lag 1
+2. Create interface 1
+4. Associate interface 1 with interface lag 1
+5. Create interface 2
+6. Associate interface 2 with interface lag 1
+7. Create interface 3
+8. Associate interface 3 with interface lag 1
+9. Set **no shutdown** in lag 1
+10. Use show running-config interface
+ - Verify that the number of interfaces in no shutdown are 5 which respresents the lag, the lag interfaces and the default vlan
+11. Set **shutdown** in lag 1
+12. Use show running-config interface
+ - Verify that the number of interfaces in no shutdown is only the default vlan
+
+### Test Result Criteria
+#### Test Pass Criteria
+All verifications pass.
+#### Test Fail Criteria
+One or more verifications fail.
