@@ -1930,6 +1930,68 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
     }
 }
 
+static void
+show_interface_status(struct vty *vty, const const struct ovsrec_interface *ifrow,
+        bool internal_if, bool brief)
+{
+    if(brief)
+    {
+        /* Display the brief information */
+        vty_out (vty, " %-12s ", ifrow->name);
+        vty_out(vty, "--      "); /*vVLAN */
+        vty_out(vty, "eth  "); /*type */
+        vty_out(vty, "--     "); /* mode - routed or not */
+
+        if ((NULL != ifrow->admin_state) &&
+                (strcmp(ifrow->admin_state,
+                        OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN) == 0))
+        {
+            if(internal_if)
+                vty_out (vty, "%-6s ", "down");
+            else
+                vty_out (vty, "%-6s ", ifrow->link_state);
+            vty_out (vty, "Administratively down    ");
+        }
+        else
+        {
+            if(internal_if)
+                vty_out (vty, "%-6s ", "up");
+            else
+                vty_out (vty, "%-6s ", ifrow->link_state);
+            vty_out (vty, "                         ");
+        }
+    }
+    else
+     {
+        vty_out (vty, "Interface %s is ", ifrow->name);
+        if ((NULL != ifrow->admin_state)
+                && strcmp(ifrow->admin_state,
+                        OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN) == 0)
+        {
+            if(internal_if)
+                vty_out (vty, "down ");
+            else
+                vty_out (vty, "%s ", ifrow->link_state);
+            vty_out (vty, "(Administratively down) %s", VTY_NEWLINE);
+            vty_out (vty, " Admin state is down%s",
+                    VTY_NEWLINE);
+        }
+        else
+        {
+            if(internal_if)
+                vty_out (vty, "up %s", VTY_NEWLINE);
+            else
+                vty_out (vty, "%s %s", ifrow->link_state, VTY_NEWLINE);
+            vty_out (vty, " Admin state is up%s", VTY_NEWLINE);
+        }
+
+        if (ifrow->error != NULL)
+        {
+            vty_out (vty, " State information: %s%s",
+                    ifrow->error, VTY_NEWLINE);
+        }
+    }
+}
 
 int
 cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
@@ -1940,7 +2002,11 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
     struct shash sorted_interfaces;
     const struct shash_node **nodes;
     int idx, count;
+<<<<<<< HEAD
     const struct ovsrec_port *port_row;
+=======
+    bool internal_if = false;
+>>>>>>> 84e3ee4... fix: usr: Fix Bug #1275. vlan interface details displayed in "show interface"
 
     const struct ovsdb_datum *datum;
     static char *interface_statistics_keys [] = {
@@ -1957,7 +2023,6 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         "collisions",
         "tx_errors"
     };
-
     unsigned int index;
     int64_t intVal = 0;
 
@@ -1995,7 +2060,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
              return CMD_SUCCESS;
         }
 
-        if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_SYSTEM) != 0)
+        if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_SYSTEM) != 0 && strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_INTERNAL) != 0)
         {
             continue;
         }
@@ -2012,9 +2077,11 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         union ovsdb_atom atom;
 
         ifrow = (const struct ovsrec_interface *)nodes[idx]->data;
+        internal_if = (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_INTERNAL) == 0) ? true : false;
 
         if (brief)
         {
+<<<<<<< HEAD
             const struct ovsrec_port *port_row;
             port_row = port_check_and_add(ifrow->name, false, false, NULL);
             vty_out (vty, " %-12s ", ifrow->name);
@@ -2051,17 +2118,10 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
             }
 
             vty_out (vty, "%-6s ", ifrow->link_state);
+=======
+            show_interface_status(vty, ifrow, internal_if, brief);
+>>>>>>> 84e3ee4... fix: usr: Fix Bug #1275. vlan interface details displayed in "show interface"
 
-            if ((NULL != ifrow->admin_state) &&
-                    (strcmp(ifrow->admin_state,
-                            OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN) == 0))
-            {
-                vty_out (vty, "Administratively down    ");
-            }
-            else
-            {
-                vty_out (vty, "                         ");
-            }
             intVal = 0;
             datum = ovsrec_interface_get_link_speed(ifrow, OVSDB_TYPE_INTEGER);
             if ((NULL!=datum) && (datum->n >0))
@@ -2083,27 +2143,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         else
         {
             intVal = 0;
-
-            vty_out (vty, "Interface %s is %s ", ifrow->name, ifrow->link_state);
-            if ((NULL != ifrow->admin_state)
-                    && strcmp(ifrow->admin_state,
-                            OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN) == 0)
-            {
-                vty_out (vty, "(Administratively down) %s", VTY_NEWLINE);
-                vty_out (vty, " Admin state is down%s",
-                        VTY_NEWLINE);
-            }
-            else
-            {
-                vty_out (vty, "%s", VTY_NEWLINE);
-                vty_out (vty, " Admin state is up%s", VTY_NEWLINE);
-            }
-
-            if (ifrow->error != NULL)
-            {
-                vty_out (vty, " State information: %s%s",
-                        ifrow->error, VTY_NEWLINE);
-            }
+            show_interface_status(vty, ifrow, internal_if, brief);
 
             vty_out (vty, " Hardware: Ethernet, MAC Address: %s %s",
                     ifrow->mac_in_use, VTY_NEWLINE);
@@ -2118,80 +2158,90 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
             /* Displaying ipv4 and ipv6 primary and secondary addresses*/
             show_ip_addresses(ifrow->name, vty);
 
-            datum = ovsrec_interface_get_mtu(ifrow, OVSDB_TYPE_INTEGER);
-            if ((NULL!=datum) && (datum->n >0))
+            if(!internal_if)
             {
-                intVal = datum->keys[0].integer;
-            }
 
-            vty_out(vty, " MTU %ld %s", intVal, VTY_NEWLINE);
-
-            if ((NULL != ifrow->duplex) &&
-                    (strcmp(ifrow->duplex, "half") == 0))
-            {
-                vty_out(vty, " Half-duplex %s", VTY_NEWLINE);
-            }
-            else
-            {
-                vty_out(vty, " Full-duplex %s", VTY_NEWLINE);
-            }
-
-            intVal = 0;
-            datum = ovsrec_interface_get_link_speed(ifrow, OVSDB_TYPE_INTEGER);
-            if ((NULL!=datum) && (datum->n >0))
-            {
-                intVal = datum->keys[0].integer;
-            }
-            vty_out(vty, " Speed %ld Mb/s %s",intVal/1000000 , VTY_NEWLINE);
-
-            cur_state = smap_get(&ifrow->user_config,
-                    INTERFACE_USER_CONFIG_MAP_AUTONEG);
-            if ((NULL == cur_state) ||
-                    strcmp(cur_state, "off") !=0)
-            {
-                vty_out(vty, " Auto-Negotiation is turned on %s", VTY_NEWLINE);
-            }
-            else
-            {
-                vty_out(vty, " Auto-Negotiation is turned off %s",
-                        VTY_NEWLINE);
-            }
-
-            cur_state = ifrow->pause;
-            if (NULL != cur_state)
-            {
-                if (strcmp(cur_state,
-                        INTERFACE_USER_CONFIG_MAP_PAUSE_NONE) == 0)
-
+                datum = ovsrec_interface_get_mtu(ifrow, OVSDB_TYPE_INTEGER);
+                if ((NULL!=datum) && (datum->n >0))
                 {
-                    vty_out(vty, " Input flow-control is off, "
-                            "output flow-control is off%s",VTY_NEWLINE);
+                    intVal = datum->keys[0].integer;
                 }
-                else if (strcmp(cur_state,
-                        INTERFACE_USER_CONFIG_MAP_PAUSE_RX) == 0)
+
+                vty_out(vty, " MTU %ld %s", intVal, VTY_NEWLINE);
+
+                if ((NULL != ifrow->duplex) &&
+                        (strcmp(ifrow->duplex, "half") == 0))
                 {
-                    vty_out(vty, " Input flow-control is on, "
-                            "output flow-control is off%s",VTY_NEWLINE);
-                }
-                else if (strcmp(cur_state,
-                        INTERFACE_USER_CONFIG_MAP_PAUSE_TX) == 0)
-                {
-                    vty_out(vty, " Input flow-control is off, "
-                            "output flow-control is on%s",VTY_NEWLINE);
+                    vty_out(vty, " Half-duplex %s", VTY_NEWLINE);
                 }
                 else
                 {
-                    vty_out(vty, " Input flow-control is on, "
-                            "output flow-control is on%s",VTY_NEWLINE);
+                    vty_out(vty, " Full-duplex %s", VTY_NEWLINE);
                 }
+
+                intVal = 0;
+                datum = ovsrec_interface_get_link_speed(ifrow, OVSDB_TYPE_INTEGER);
+                if ((NULL!=datum) && (datum->n >0))
+                {
+                    intVal = datum->keys[0].integer;
+                }
+                vty_out(vty, " Speed %ld Mb/s %s",intVal/1000000 , VTY_NEWLINE);
+
+                cur_state = smap_get(&ifrow->user_config,
+                                       INTERFACE_USER_CONFIG_MAP_AUTONEG);
+                if ((NULL == cur_state) ||
+                    strcmp(cur_state, "off") !=0)
+                {
+                    vty_out(vty, " Auto-Negotiation is turned on %s", VTY_NEWLINE);
+                }
+                else
+                {
+                    vty_out(vty, " Auto-Negotiation is turned off %s",
+                        VTY_NEWLINE);
+                }
+
+                cur_state = ifrow->pause;
+                if (NULL != cur_state)
+                {
+                    if (strcmp(cur_state,
+                        INTERFACE_USER_CONFIG_MAP_PAUSE_NONE) == 0)
+
+                    {
+                        vty_out(vty, " Input flow-control is off, "
+                            "output flow-control is off%s",VTY_NEWLINE);
+                    }
+                    else if (strcmp(cur_state,
+                        INTERFACE_USER_CONFIG_MAP_PAUSE_RX) == 0)
+                    {
+                        vty_out(vty, " Input flow-control is on, "
+                            "output flow-control is off%s",VTY_NEWLINE);
+                    }
+                    else if (strcmp(cur_state,
+                        INTERFACE_USER_CONFIG_MAP_PAUSE_TX) == 0)
+                    {
+                        vty_out(vty, " Input flow-control is off, "
+                            "output flow-control is on%s",VTY_NEWLINE);
+                    }
+                    else
+                    {
+                        vty_out(vty, " Input flow-control is on, "
+                            "output flow-control is on%s",VTY_NEWLINE);
+                    }
+                }
+                else
+                {
+                    vty_out(vty, " Input flow-control is off, "
+                        "output flow-control is off%s",VTY_NEWLINE);
+                }
+            }
+            if(internal_if)
+            {
+                vty_out(vty, "%s", VTY_NEWLINE);
+                continue;
             }
             else
             {
-                vty_out(vty, " Input flow-control is off, "
-                        "output flow-control is off%s",VTY_NEWLINE);
-            }
-
-            datum = ovsrec_interface_get_statistics(ifrow,
+                datum = ovsrec_interface_get_statistics(ifrow,
                     OVSDB_TYPE_STRING, OVSDB_TYPE_INTEGER);
 
             if (NULL==datum) continue;
@@ -2253,6 +2303,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
             vty_out(vty, "%s", VTY_NEWLINE);
 
             vty_out(vty, "%s", VTY_NEWLINE);
+            }
         }
     }
 
