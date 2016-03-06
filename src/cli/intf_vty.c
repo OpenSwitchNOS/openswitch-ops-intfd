@@ -1118,6 +1118,10 @@ parse_l3config(const char *if_name, struct vty *vty)
                         port_row->ip6_address_secondary[i], " secondary",
                         VTY_NEWLINE);
             }
+            if (smap_get(&port_row->other_config,
+                         PORT_OTHER_CONFIG_MAP_PROXY_ARP_ENABLED)) {
+                vty_out(vty, "%3s%s%s", "", "ip proxy-arp", VTY_NEWLINE);
+            }
         }
     }
     return 0;
@@ -1248,8 +1252,11 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
         int flags, int argc, const char *argv[])
 {
     const struct ovsrec_interface *row = NULL;
+    const struct ovsrec_dhcp_relay *row_serv = NULL;
     const char *cur_state =NULL;
     bool bPrinted = false;
+    size_t i = 0;
+    char *helper_ip = NULL;
 
     OVSREC_INTERFACE_FOR_EACH(row, idl)
     {
@@ -1365,6 +1372,24 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
         parse_lacp_othercfg(&row->other_config, row->name, vty, &bPrinted);
 
         print_interface_lag(row->name, vty, &bPrinted);
+
+        /* Displaying the dhcp-relay helper addresses  */
+        OVSREC_DHCP_RELAY_FOR_EACH (row_serv, idl)
+        {
+            /* get the interface details. */
+            if(row_serv->port)
+            {
+                if (!strcmp(row_serv->port->name, row->name))
+                {
+                    for (i = 0; i < row_serv->n_ipv4_ucast_server; i++)
+                    {
+                        helper_ip = row_serv->ipv4_ucast_server[i];
+                        vty_out(vty, "   ip helper-address %s%s",
+                                     helper_ip, VTY_NEWLINE);
+                    }
+                }
+            }
+        }
 
         if (bPrinted)
         {
@@ -1731,7 +1756,6 @@ show_lacp_interfaces_brief (struct vty *vty, const char *argv[])
 {
     const struct ovsrec_port *lag_port = NULL;
     const struct ovsrec_interface *if_row = NULL;
-    const char *aggregate_mode = NULL;
     const struct ovsdb_datum *datum;
 
     int64_t lag_speed = 0;
@@ -1752,14 +1776,30 @@ show_lacp_interfaces_brief (struct vty *vty, const char *argv[])
         }
 
         vty_out(vty, " %-12s ", lag_port->name);
-        vty_out(vty, "--      "); /*VLAN */
+        /* Display vid for an lag interface */
+        if (lag_port->tag != NULL ) {
+            vty_out(vty, "%-8ld", *lag_port->tag); /*vid */
+        }
+        else {
+            vty_out(vty, "--      "); /*vid */
+        }
         vty_out(vty, "--  "); /*type */
 
-        aggregate_mode = lag_port->lacp;
-        if(aggregate_mode)
-            vty_out(vty, "%-7s ", aggregate_mode); /* mode -  active, passive*/
-        else
-            vty_out(vty, "--      "); /* mode -  active, passive */
+        /* Display vlan mode for an lag interface */
+        if (lag_port->vlan_mode == NULL) {
+            vty_out(vty, "--      ");
+        }
+        else {
+            /* Access mode */
+            if (strncmp(lag_port->vlan_mode, OVSREC_PORT_VLAN_MODE_ACCESS,
+                     strlen(OVSREC_PORT_VLAN_MODE_ACCESS)) == 0) {
+                vty_out(vty, "%-8s", OVSREC_PORT_VLAN_MODE_ACCESS); /*Access mode */
+             }
+             else {
+             /* Trunk mode - trunk, native-tagged or native-untagged*/
+                vty_out(vty, "%-8s", OVSREC_PORT_VLAN_MODE_TRUNK); /* Trunk mode */
+             }
+        }
 
         vty_out(vty, "--     ");/* Status */
         vty_out(vty, "--                       "); /*Reason*/
@@ -2115,10 +2155,11 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         int flags, int argc, const char *argv[], bool brief)
 {
     const struct ovsrec_interface *ifrow = NULL;
-    const char *cur_state =NULL;
+    const char *cur_state = NULL;
     struct shash sorted_interfaces;
     const struct shash_node **nodes;
     int idx, count;
+    const struct ovsrec_port *port_row;
 
     const struct ovsdb_datum *datum;
     static char *interface_statistics_keys [] = {
@@ -2193,11 +2234,40 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
         if (brief)
         {
-            /* Display the brief information */
+            const struct ovsrec_port *port_row;
+            port_row = port_check_and_add(ifrow->name, false, false, NULL);
             vty_out (vty, " %-12s ", ifrow->name);
-            vty_out(vty, "--      "); /*vVLAN */
-            vty_out(vty, "eth  "); /*type */
-            vty_out(vty, "--     "); /* mode - routed or not */
+
+            /* Display vlan mode and vid for an L3 interface,
+             * port table by default is not populated unless
+             * entered into interface mode
+             */
+            if (port_row == NULL ||
+                (port_row->tag == NULL && port_row->vlan_mode == NULL)) {
+                vty_out(vty, "--      "); /*vid */
+                vty_out(vty, "eth  "); /*type */
+                vty_out(vty, "%-7s", VLAN_MODE_ROUTED);
+            }
+            /* Display vlan mode and vid for interface VLAN*/
+            else if (port_row->tag != NULL && port_row->vlan_mode == NULL) {
+                vty_out(vty, "--      "); /*vid */
+                vty_out(vty, "eth  "); /*type */
+                vty_out(vty, "     "); /* mode - routed or not */
+            }
+            /* Display vlan mode and vid for an l2 interface */
+            else if (port_row->tag != NULL && port_row->vlan_mode != NULL) {
+                vty_out(vty, "%-8ld", *port_row->tag); /*vid */
+                vty_out(vty, "eth  "); /*type */
+                if (strncmp(port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_ACCESS,
+                             strlen(OVSREC_PORT_VLAN_MODE_ACCESS)) == 0){
+                    /* Default in access mode */
+                    vty_out(vty, "%-7s", OVSREC_PORT_VLAN_MODE_ACCESS);
+                }
+                else {
+                    /* Trunk mode - trunk, native-tagged or native-untagged*/
+                    vty_out(vty, "%-7s", OVSREC_PORT_VLAN_MODE_TRUNK);
+                }
+            }
 
             vty_out (vty, "%-6s ", ifrow->link_state);
 
@@ -2257,6 +2327,13 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
             vty_out (vty, " Hardware: Ethernet, MAC Address: %s %s",
                     ifrow->mac_in_use, VTY_NEWLINE);
+
+            port_row = port_find(ifrow->name);
+            if (port_row && smap_get(&port_row->other_config,
+                  PORT_OTHER_CONFIG_MAP_PROXY_ARP_ENABLED))
+            {
+                vty_out(vty, " Proxy ARP is enabled%s", VTY_NEWLINE);
+            }
 
             /* Displaying ipv4 and ipv6 primary and secondary addresses*/
             show_ip_addresses(ifrow->name, vty);
@@ -2426,35 +2503,58 @@ DEFUN (vtysh_interface,
       "Select an interface to configure\n"
       "Interface's name\n")
 {
-  static char ifnumber[MAX_IFNAME_LENGTH];
+    static char ifnumber[MAX_IFNAME_LENGTH];
+    const struct ovsrec_interface *if_row = NULL;
+    uint16_t flag = 1;
 
-  if (strchr(argv[0], '.'))
-  {
-     return create_sub_interface(argv[0]);
-  }
-  else
-  {
-     vty->node = INTERFACE_NODE;
-  }
+    if (strchr(argv[0], '.'))
+    {
+        return create_sub_interface(argv[0]);
+    }
+    else
+    {
+        vty->node = INTERFACE_NODE;
+    }
 
-  if (VERIFY_VLAN_IFNAME(argv[0]) == 0) {
-  vty->node = VLAN_INTERFACE_NODE;
-      GET_VLANIF(ifnumber, argv[0]);
-      if (create_vlan_interface(ifnumber) == CMD_OVSDB_FAILURE) {
-          return CMD_OVSDB_FAILURE;
-      }
-  }
-  else if (strlen(argv[0]) < MAX_IFNAME_LENGTH)
-  {
-    strncpy(ifnumber, argv[0], MAX_IFNAME_LENGTH);
-    default_port_add(ifnumber);
-  }
-  else
-  {
-    return CMD_ERR_NO_MATCH;
-  }
+    if (VERIFY_VLAN_IFNAME(argv[0]) == 0)
+    {
+        vty->node = VLAN_INTERFACE_NODE;
+        GET_VLANIF(ifnumber, argv[0]);
+        if (create_vlan_interface(ifnumber) == CMD_OVSDB_FAILURE)
+        {
+            return CMD_OVSDB_FAILURE;
+        }
+    }
+    else if (strlen(argv[0]) < MAX_IFNAME_LENGTH)
+    {
+        strncpy(ifnumber, argv[0], MAX_IFNAME_LENGTH);
+
+        OVSREC_INTERFACE_FOR_EACH (if_row, idl)
+        {
+            if (strcmp (if_row->name, ifnumber) == 0)
+            {
+                if ((if_row->error != NULL) &&
+                    ((strcmp(if_row->error, "lanes_split")) == 0))
+                {
+                    vty_out(vty, "Interface Warning : Split Interface\n");
+                    flag = 0;
+                    break;
+                }
+            }
+        }
+        if(flag)
+        {
+            default_port_add(ifnumber);
+        }
+    }
+    else
+    {
+        return CMD_ERR_NO_MATCH;
+    }
+
   VLOG_DBG("%s ifnumber = %s\n", __func__, ifnumber);
   vty->index = ifnumber;
+
   return CMD_SUCCESS;
 }
 

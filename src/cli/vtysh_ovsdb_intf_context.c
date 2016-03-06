@@ -517,6 +517,41 @@ vtysh_ovsdb_intftable_parse_vlan(const char *if_name,
 }
 
 /*-----------------------------------------------------------------------------
+| Function       : display_helper_address_info
+| Responsibility : To display dhcp-relay helper-address details
+| Parameters     :
+|    *if_name    : Name of interface
+|     p_msg      : Used for idl operations
+-----------------------------------------------------------------------------*/
+static void
+display_helper_address_info (const char *if_name, vtysh_ovsdb_cbmsg_ptr p_msg)
+{
+    const struct ovsrec_dhcp_relay *row_serv;
+    char *helper_ip = NULL;
+    size_t i = 0;
+
+    /* Displaying the dhcp-relay helper addresses  */
+    OVSREC_DHCP_RELAY_FOR_EACH (row_serv, p_msg->idl)
+    {
+        /* get the interface details. */
+        if(row_serv->port)
+        {
+            if (!strcmp(row_serv->port->name, if_name))
+            {
+                for (i = 0; i < row_serv->n_ipv4_ucast_server; i++)
+                {
+                    helper_ip = row_serv->ipv4_ucast_server[i];
+                    vtysh_ovsdb_cli_print(p_msg, "%4s%s %s", "",
+                        "ip helper-address", helper_ip);
+                }
+            }
+        }
+    }
+
+    return;
+}
+
+/*-----------------------------------------------------------------------------
 | Function : vtysh_ovsdb_intftable_parse_l3config
 | Responsibility : Used for VRF related config
 | Parameters :
@@ -570,6 +605,18 @@ vtysh_ovsdb_intftable_parse_l3config(const char *if_name,
           vtysh_ovsdb_cli_print(p_msg, "%4s%s%s%s", "", "ipv6 address ",
                   port_row->ip6_address_secondary[i], " secondary");
         }
+        if (smap_get(&port_row->other_config, PORT_OTHER_CONFIG_MAP_PROXY_ARP_ENABLED)) {
+            vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "ip proxy-arp");
+        }
+        display_helper_address_info(if_name, p_msg);
+      }
+      else
+      {
+          if (!interfaceNameWritten)
+          {
+              vtysh_ovsdb_cli_print(p_msg, "interface %s", if_name);
+          }
+          display_helper_address_info(if_name, p_msg);
       }
     }
   }
