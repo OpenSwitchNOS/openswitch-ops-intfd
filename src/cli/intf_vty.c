@@ -1839,6 +1839,7 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
     // Indexes for loops
     int interface_index = 0;
     int stat_index = 0;
+    bool lag_found = false;
 
     // Array to keep the statistics for each lag while adding the
     // stats for each interface in the lag.
@@ -1861,6 +1862,7 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
         {
             continue;
         }
+        lag_found = true;
 
         vty_out(vty, "Aggregate-name %s %s", lag_port->name, VTY_NEWLINE);
         vty_out(vty, " Aggregated-interfaces : ");
@@ -1926,8 +1928,12 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
 
         vty_out(vty, "   %10d collision  ",lag_statistics[10]);
         vty_out(vty, "%s", VTY_NEWLINE);
-        vty_out(vty, "%s", VTY_NEWLINE);
     }
+    if (lag_found) {
+        vty_out(vty, "%s", VTY_NEWLINE);
+    } else {
+          vty_out(vty, "%% Command incomplete.%s", VTY_NEWLINE);
+      }
 }
 
 
@@ -2257,7 +2263,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
     }
 
     shash_destroy(&sorted_interfaces);
-    free(nodes);
+    free( nodes);
 
     if(brief)
     {
