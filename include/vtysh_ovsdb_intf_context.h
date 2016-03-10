@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Hewlett Packard Enterprise Development LP
+ * Copyright (C) 2015-2016 Hewlett Packard Enterprise Development LP
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -26,8 +26,6 @@
 #ifndef VTYSH_OVSDB_INTF_CONTEXT_H
 #define VTYSH_OVSDB_INTF_CONTEXT_H
 
-int vtysh_init_intf_context_clients();
-vtysh_ret_val vtysh_intf_context_clientcallback_old(void *p_private);
 vtysh_ret_val vtysh_intf_context_clientcallback(void *p_private);
 struct feature_sorted_list * vtysh_intf_context_init(void *p_private);
 void vtysh_intf_context_exit(struct feature_sorted_list * head);
