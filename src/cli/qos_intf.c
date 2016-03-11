@@ -87,7 +87,7 @@ void qos_cos_port_show_running_config(const struct ovsrec_port *port_row,
         *header_printed = true;
         vty_out(vty, "%s %s%s", header, port_row->name, VTY_NEWLINE);
     }
-    vty_out(vty, "    qos cos override %s%s", cos_map_index, VTY_NEWLINE);
+    vty_out(vty, "    qos cos %s%s", cos_map_index, VTY_NEWLINE);
 }
 
 void qos_apply_port_show_running_config(const struct ovsrec_port *port_row,
@@ -100,19 +100,6 @@ void qos_apply_port_show_running_config(const struct ovsrec_port *port_row,
         return;
     }
 
-    /* Show the queue profile. */
-    if (port_row->q_profile != NULL) {
-        const char *queue_profile_name = port_row->q_profile->name;
-        if (queue_profile_name != NULL) {
-            if (!*header_printed) {
-                *header_printed = true;
-                vty_out(vty, "%s %s%s", header, port_row->name, VTY_NEWLINE);
-            }
-            vty_out(vty, "    qos queue-profile %s%s",
-                    queue_profile_name, VTY_NEWLINE);
-        }
-    }
-
     /* Show the schedule profile. */
     if (port_row->qos != NULL) {
         const char *schedule_profile_name = port_row->qos->name;
@@ -121,7 +108,7 @@ void qos_apply_port_show_running_config(const struct ovsrec_port *port_row,
                 *header_printed = true;
                 vty_out(vty, "%s %s%s", header, port_row->name, VTY_NEWLINE);
             }
-            vty_out(vty, "    qos schedule-profile %s%s",
+            vty_out(vty, "    apply qos schedule-profile %s%s",
                     schedule_profile_name, VTY_NEWLINE);
         }
     }
@@ -147,7 +134,7 @@ void qos_dscp_port_show_running_config(const struct ovsrec_port *port_row,
         *header_printed = true;
         vty_out(vty, "%s %s%s", header, port_row->name, VTY_NEWLINE);
     }
-    vty_out(vty, "    qos dscp override %s%s", dscp_map_index, VTY_NEWLINE);
+    vty_out(vty, "    qos dscp %s%s", dscp_map_index, VTY_NEWLINE);
 }
 
 void qos_trust_port_show(const struct ovsrec_port *port_row) {

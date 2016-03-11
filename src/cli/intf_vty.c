@@ -2117,8 +2117,8 @@ cli_show_interface_queue_stats (struct cmd_element *self, struct vty *vty,
     int idx, count, q = 0;
 
     static char *interface_queue_stats_keys [] = {
-        "Tx Packets",
         "Tx Bytes",
+        "Tx Packets",
         "Tx Errors"
     };
 
