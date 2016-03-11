@@ -78,6 +78,13 @@ compare_nodes_by_interface_in_numerical(const void *a_, const void *b_)
     sscanf((*a)->name,"%d-%d",&i1,&i2);
     sscanf((*b)->name,"%d-%d",&i3,&i4);
 
+    if(strstr(((*a)->name), "vlan") != NULL &&
+       strstr(((*b)->name), "vlan") != NULL)
+    {
+        sscanf((*a)->name,"vlan%d",&i1);
+        sscanf((*b)->name,"vlan%d",&i3);
+    }
+
     if(i1 == i3)
     {
         if(i2 == i4)
