@@ -1130,6 +1130,10 @@ parse_l3config(const char *if_name, struct vty *vty)
                          PORT_OTHER_CONFIG_MAP_PROXY_ARP_ENABLED)) {
                 vty_out(vty, "%3s%s%s", "", "ip proxy-arp", VTY_NEWLINE);
             }
+            if (smap_get(&port_row->other_config,
+                         PORT_OTHER_CONFIG_MAP_LOCAL_PROXY_ARP_ENABLED)) {
+                vty_out(vty, "%3s%s%s", "", "ip local-proxy-arp", VTY_NEWLINE);
+            }
         }
     }
     return 0;
@@ -2213,6 +2217,12 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
                   PORT_OTHER_CONFIG_MAP_PROXY_ARP_ENABLED))
             {
                 vty_out(vty, " Proxy ARP is enabled%s", VTY_NEWLINE);
+            }
+
+            if (port_row && smap_get(&port_row->other_config,
+                  PORT_OTHER_CONFIG_MAP_LOCAL_PROXY_ARP_ENABLED))
+            {
+                vty_out(vty, " Local Proxy ARP is enabled%s", VTY_NEWLINE);
             }
 
             /* Displaying ipv4 and ipv6 primary and secondary addresses*/
