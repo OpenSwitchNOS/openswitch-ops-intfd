@@ -103,7 +103,7 @@
 #include <openvswitch/vlog.h>
 #include <openvswitch/compiler.h>
 
-/* Currently only QSFP+ interfaces can be split
+/* Currently only QSFP+ and QSFP28 interfaces can be split
  * up into subintfs, and it's always groups of 4. */
 #define MAX_SPLIT_COUNT                4
 
@@ -114,20 +114,29 @@
  ********************************************************************/
 #define SPEED_1G                    1000
 #define SPEED_10G                   10000
+#define SPEED_25G                   25000
 #define SPEED_40G                   40000
+#define SPEED_50G                   50000
+#define SPEED_100G                  100000
 
 #define PLUGGABLE_FLAG              (uint64_t)0x00000001
 #define ENET_1G_CAPABLE_FLAG        (uint64_t)0x00000002
 #define ENET_10G_CAPABLE_FLAG       (uint64_t)0x00000004
-#define ENET_40G_CAPABLE_FLAG       (uint64_t)0x00000008
-#define INTF_SPLIT_4_CAPABLE_FLAG   (uint64_t)0x00000010
+#define ENET_25G_CAPABLE_FLAG       (uint64_t)0x00000008
+#define ENET_40G_CAPABLE_FLAG       (uint64_t)0x00000010
+#define ENET_50G_CAPABLE_FLAG       (uint64_t)0x00000020
+#define ENET_100G_CAPABLE_FLAG      (uint64_t)0x00000040
+#define INTF_SPLIT_4_CAPABLE_FLAG   (uint64_t)0x00000080
 
 /* Following MACROs check for intf's capabilities. */
-#define INTF_IS_PLUGGABLE(p)        (0 != ((p)->pm_info.capability_flags & PLUGGABLE_FLAG))
-#define INTF_IS_ENET_1G_CAPABLE(p)  (0 != ((p)->pm_info.capability_flags & ENET_1G_CAPABLE_FLAG))
-#define INTF_IS_ENET_10G_CAPABLE(p) (0 != ((p)->pm_info.capability_flags & ENET_10G_CAPABLE_FLAG))
-#define INTF_IS_ENET_40G_CAPABLE(p) (0 != ((p)->pm_info.capability_flags & ENET_40G_CAPABLE_FLAG))
-#define INTF_IS_SPLIT_4_CAPABLE(p)  (0 != ((p)->pm_info.capability_flags & INTF_SPLIT_4_CAPABLE_FLAG))
+#define INTF_IS_PLUGGABLE(p)         (0 != ((p)->pm_info.capability_flags & PLUGGABLE_FLAG))
+#define INTF_IS_ENET_1G_CAPABLE(p)   (0 != ((p)->pm_info.capability_flags & ENET_1G_CAPABLE_FLAG))
+#define INTF_IS_ENET_10G_CAPABLE(p)  (0 != ((p)->pm_info.capability_flags & ENET_10G_CAPABLE_FLAG))
+#define INTF_IS_ENET_25G_CAPABLE(p)  (0 != ((p)->pm_info.capability_flags & ENET_25G_CAPABLE_FLAG))
+#define INTF_IS_ENET_40G_CAPABLE(p)  (0 != ((p)->pm_info.capability_flags & ENET_40G_CAPABLE_FLAG))
+#define INTF_IS_ENET_50G_CAPABLE(p)  (0 != ((p)->pm_info.capability_flags & ENET_50G_CAPABLE_FLAG))
+#define INTF_IS_ENET_100G_CAPABLE(p) (0 != ((p)->pm_info.capability_flags & ENET_100G_CAPABLE_FLAG))
+#define INTF_IS_SPLIT_4_CAPABLE(p)   (0 != ((p)->pm_info.capability_flags & INTF_SPLIT_4_CAPABLE_FLAG))
 
 /*********************************************************************
  * op_connector flags to simplify processing
@@ -135,44 +144,60 @@
  * NOTE: Use bit 4  (0x0010) to indicate the connector is supported.
  *       Use bit 5  (0x0020) to indicate general SFP module type.
  *       Use bit 6  (0x0040) to indicate SFP+ 10G speed.
- *       Use bit 7  (0x0080) to indicate general QSFP module type.
- *       Use bit 8  (0x0100) to indicate QSFP 40G speed.
- *       Use bit 9  (0x0200) to indicate QSFP 4 x 10G speed.
+ *       Use bit 7  (0x0080) to indicate SFP28 25G speed.
+ *       Use bit 7  (0x0100) to indicate general QSFP module type.
+ *       Use bit 8  (0x0200) to indicate QSFP+ 40G speed.
+ *       Use bit 11 (0x0400) to indicate QSFP28 100G speed.
  ********************************************************************/
 
 /* First, define the OP_CONNECTOR flags */
 #define PM_UNSUPPORTED_FLAG         (uint64_t)0x0000
 #define PM_SUPPORTED_FLAG           (uint64_t)0x0010
 #define PM_SFP_TYPE_FLAG            (uint64_t)0x0020
-#define PM_SFP_10G_FLAG             (uint64_t)0x0040
-#define PM_QSFP_PLUS_TYPE_FLAG      (uint64_t)0x0080
-#define PM_QSFP_PLUS_40G_FLAG       (uint64_t)0x0100
+#define PM_SFP_PLUS_10G_FLAG        (uint64_t)0x0040
+#define PM_SFP28_25G_FLAG           (uint64_t)0x0080
+#define PM_QSFP_TYPE_FLAG           (uint64_t)0x0100
+#define PM_QSFP_PLUS_40G_FLAG       (uint64_t)0x0200
+#define PM_QSFP28_100G_FLAG         (uint64_t)0x0400
 
 #define PM_SFP_FLAGS                (PM_SUPPORTED_FLAG | PM_SFP_TYPE_FLAG)
 
 #define PM_SFP_PLUS_FLAGS           (PM_SUPPORTED_FLAG | PM_SFP_TYPE_FLAG | \
-                                     PM_SFP_10G_FLAG)
+                                     PM_SFP_PLUS_10G_FLAG)
 
-#define PM_QSFP_PLUS_40G_FLAGS      (PM_SUPPORTED_FLAG | PM_QSFP_PLUS_TYPE_FLAG | \
+#define PM_SFP28_25G_FLAGS          (PM_SUPPORTED_FLAG | PM_SFP_TYPE_FLAG | \
+                                     PM_SFP28_25G_FLAG)
+
+#define PM_QSFP_PLUS_40G_FLAGS      (PM_SUPPORTED_FLAG | PM_QSFP_TYPE_FLAG | \
                                      PM_QSFP_PLUS_40G_FLAG)
+
+#define PM_QSFP28_100G_FLAGS        (PM_SUPPORTED_FLAG | PM_QSFP_TYPE_FLAG | \
+                                     PM_QSFP28_100G_FLAG)
 
 #define CONNECTOR_SUPPORTED(p)      ((p)->pm_info.op_connector_flags & PM_SUPPORTED_FLAG)
 #define CONNECTOR_IS_SFP_FAMILY(p)  ((p)->pm_info.op_connector_flags & PM_SFP_TYPE_FLAG)
-#define CONNECTOR_IS_QSFP_FAMILY(p) ((p)->pm_info.op_connector_flags & PM_QSFP_PLUS_TYPE_FLAG)
+#define CONNECTOR_IS_QSFP_FAMILY(p) ((p)->pm_info.op_connector_flags & PM_QSFP_TYPE_FLAG)
 
 #define CONNECTOR_IS_SFP(p)         (CONNECTOR_IS_SFP_FAMILY(p) && \
-                                     !((p)->pm_info.op_connector_flags & PM_SFP_10G_FLAG))
+                                     !((p)->pm_info.op_connector_flags & \
+                                     (PM_SFP_PLUS_10G_FLAG | PM_SFP28_25G_FLAG)))
 
-#define CONNECTOR_IS_SFP_PLUS(p)    (CONNECTOR_IS_SFP_FAMILY(p) && \
-                                     ((p)->pm_info.op_connector_flags & PM_SFP_10G_FLAG))
+#define CONNECTOR_IS_SFP_PLUS_10G(p) (CONNECTOR_IS_SFP_FAMILY(p) && \
+                                      ((p)->pm_info.op_connector_flags & PM_SFP_PLUS_10G_FLAG))
+
+#define CONNECTOR_IS_SFP28_25G(p)    (CONNECTOR_IS_SFP_FAMILY(p) && \
+                                      ((p)->pm_info.op_connector_flags & PM_SFP28_25G_FLAG))
 
 #define CONNECTOR_IS_QSFP_PLUS_40G(p) (CONNECTOR_IS_QSFP_FAMILY(p) && \
-                                      ((p)->pm_info.op_connector_flags & PM_QSFP_PLUS_40G_FLAG))
+                                       ((p)->pm_info.op_connector_flags & PM_QSFP_PLUS_40G_FLAG))
+
+#define CONNECTOR_IS_QSFP28_100G(p)    (CONNECTOR_IS_QSFP_FAMILY(p) && \
+                                        ((p)->pm_info.op_connector_flags & PM_QSFP28_100G_FLAG))
 
 #define CONNECTOR_IS_SFP_RJ45(p) (INTERFACE_PM_INFO_CONNECTOR_SFP_RJ45 == (p)->pm_info.op_connector)
 #define CONNECTOR_IS_DAC(p)      (INTERFACE_PM_INFO_CONNECTOR_SFP_DAC == (p)->pm_info.op_connector)
 #define CONNECTOR_IS_1G(p)       (CONNECTOR_IS_SFP(p))
-#define CONNECTOR_IS_10G(p)      (CONNECTOR_IS_SFP_PLUS(p))
+#define CONNECTOR_IS_10G(p)      (CONNECTOR_IS_SFP_PLUS_10G(p))
 #define CONNECTOR_IS_ABSENT(p)   (INTERFACE_PM_INFO_CONNECTOR_ABSENT == (p)->pm_info.op_connector)
 
 #define CABLE_TECH_IS_ACTIVE(p)  (INTERFACE_PM_INFO_CABLE_TECHNOLOGY_ACTIVE == (p)->pm_info.cable_tech)
