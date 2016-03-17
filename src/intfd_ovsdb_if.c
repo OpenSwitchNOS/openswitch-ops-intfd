@@ -51,6 +51,8 @@
 #include "intfd.h"
 #include "intfd_utils.h"
 
+#include "eventlog.h"
+
 VLOG_DEFINE_THIS_MODULE(intfd_ovsdb_if);
 
 /** @ingroup intfd
@@ -1752,6 +1754,9 @@ add_del_interface_handle_port_config_mods(void)
                                     INTERFACE_USER_CONFIG_MAP_ADMIN);
                     if (data && (STR_EQ(data, OVSREC_INTERFACE_USER_CONFIG_ADMIN_UP))) {
                         intf->user_cfg.admin_state = INTERFACE_USER_CONFIG_ADMIN_UP;
+                        log_event("INTERFACE_UP", EV_KV("interface", intf->name));
+                    } else {
+                        log_event("INTERFACE_DOWN", EV_KV("interface", intf->name));
                     }
                     set_interface_config(intf_row, intf);
                     rc++;
