@@ -51,6 +51,8 @@
 #include "intfd.h"
 #include "intfd_utils.h"
 
+#include "eventlog.h"
+
 VLOG_DEFINE_THIS_MODULE(intfd_ovsdb_if);
 
 /** @ingroup intfd
@@ -1742,9 +1744,11 @@ add_del_interface_handle_port_config_mods(void)
                     intf = shash_find_data(&all_interfaces, intf_row->name);
                     if ((port_row->admin == NULL) || (!strcmp(port_row->admin, "up"))) {
                         VLOG_DBG("Set intf->port_admin to up\n");
+                        log_event("INTERFACE_UP", EV_KV("interface", intf->name));
                         intf->port_admin = PORT_ADMIN_CONFIG_UP;
                     } else {
                         VLOG_DBG("Set intf->port_admin to down\n");
+                        log_event("INTERFACE_DOWN", EV_KV("interface", intf->name));
                         intf->port_admin = PORT_ADMIN_CONFIG_DOWN;
                     }
                     intf->user_cfg.admin_state = INTERFACE_USER_CONFIG_ADMIN_DOWN;
