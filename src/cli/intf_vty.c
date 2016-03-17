@@ -78,6 +78,13 @@ compare_nodes_by_interface_in_numerical(const void *a_, const void *b_)
     sscanf((*a)->name,"%d-%d",&i1,&i2);
     sscanf((*b)->name,"%d-%d",&i3,&i4);
 
+    if(strstr(((*a)->name), "vlan") != NULL &&
+       strstr(((*b)->name), "vlan") != NULL)
+    {
+        sscanf((*a)->name,"vlan%d",&i1);
+        sscanf((*b)->name,"vlan%d",&i3);
+    }
+
     if(i1 == i3)
     {
         if(i2 == i4)
@@ -266,11 +273,12 @@ dyncb_helpstr_speeds(struct cmd_token *token, struct vty *vty, \
  */
 DEFUN_DYN_HELPSTR (cli_intf_speed,
       cli_intf_speed_cmd,
-      "speed (auto|1000|10000|40000)",
+      "speed (auto|1000|10000|25000|40000|50000|100000)",
       "Configure the interface speed\n"
       "Auto negotiate speed (Default)\n"
-      "1Gb/s\n10Gb/s\n40Gb/s",
-      "\n\ndyncb_helpstr_1G\ndyncb_helpstr_10G\ndyncb_helpstr_40G")
+      "1Gb/s\n10Gb/s\n25Gb/s\n40Gb/s\n50Gb/s\n100Gb/s",
+      "\n\ndyncb_helpstr_1G\ndyncb_helpstr_10G\ndyncb_helpstr_25G"
+      "\ndyncb_helpstr_40G\ndyncb_helpstr_50G\ndyncb_helpstr_100G")
 {
     const struct ovsrec_interface * row = NULL;
     struct ovsdb_idl_txn* status_txn = cli_do_config_start();
@@ -1620,7 +1628,12 @@ int cli_show_xvr_exec (struct cmd_element *self, struct vty *vty,
                 else if (strcmp(cur_state,
                         INTERFACE_HW_INTF_INFO_MAP_CONNECTOR_QSFP_PLUS) ==0)
                 {
-                    vty_out(vty, "  QSFP       ");
+                    vty_out(vty, "  QSFP+      ");
+                }
+                else if (strcmp(cur_state,
+                        INTERFACE_HW_INTF_INFO_MAP_CONNECTOR_QSFP28) ==0)
+                {
+                    vty_out(vty, "  QSFP28     ");
                 }
                 else
                 {
@@ -1703,12 +1716,29 @@ int cli_show_xvr_exec (struct cmd_element *self, struct vty *vty,
                             strcmp(cur_state,
                                INTERFACE_HW_INTF_INFO_MAP_SPLIT_4_TRUE) == 0)
                     {
-                        vty_out(vty, " Connector: QSFP (splittable)%s",
+                        vty_out(vty, " Connector: QSFP+ (splittable)%s",
                                 VTY_NEWLINE);
                     }
                     else
                     {
-                        vty_out(vty, " Connector: QSFP %s", VTY_NEWLINE);
+                        vty_out(vty, " Connector: QSFP+ %s", VTY_NEWLINE);
+                    }
+                }
+                else if (strcmp(cur_state,
+                        INTERFACE_HW_INTF_INFO_MAP_CONNECTOR_QSFP28) == 0)
+                {
+                    cur_state = smap_get(&ifrow->hw_intf_info,
+                            INTERFACE_HW_INTF_INFO_MAP_SPLIT_4);
+                    if (cur_state != NULL &&
+                            strcmp(cur_state,
+                               INTERFACE_HW_INTF_INFO_MAP_SPLIT_4_TRUE) == 0)
+                    {
+                        vty_out(vty, " Connector: QSFP28 (splittable)%s",
+                                VTY_NEWLINE);
+                    }
+                    else
+                    {
+                        vty_out(vty, " Connector: QSFP28 %s", VTY_NEWLINE);
                     }
                 }
                 else
@@ -2804,7 +2834,10 @@ void cli_pre_init(void)
     vtysh_install_default (INTERFACE_NODE);
     install_dyn_helpstr_funcptr("dyncb_helpstr_1G", dyncb_helpstr_speeds);
     install_dyn_helpstr_funcptr("dyncb_helpstr_10G", dyncb_helpstr_speeds);
+    install_dyn_helpstr_funcptr("dyncb_helpstr_25G", dyncb_helpstr_speeds);
     install_dyn_helpstr_funcptr("dyncb_helpstr_40G", dyncb_helpstr_speeds);
+    install_dyn_helpstr_funcptr("dyncb_helpstr_50G", dyncb_helpstr_speeds);
+    install_dyn_helpstr_funcptr("dyncb_helpstr_100G", dyncb_helpstr_speeds);
     install_dyn_helpstr_funcptr("dyncb_helpstr_mtu", dyncb_helpstr_mtu);
 
     intf_ovsdb_init();

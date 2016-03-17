@@ -129,6 +129,15 @@ struct port_info {
 };
 
 char *interface_pm_info_connector_strings[] = {
+    OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CLR4,
+    OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4,
+    OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_PSM4,
+    OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CWDM4,
+    OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4,
+    OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_SR4,
+    OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP28_CR,
+    OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP28_LR,
+    OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP28_SR,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP_CR4,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP_LR4,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP_SR4,
@@ -266,10 +275,20 @@ get_connector_flags(enum ovsrec_interface_pm_info_connector_e connector)
     case INTERFACE_PM_INFO_CONNECTOR_SFP_DAC:
         return PM_SFP_PLUS_FLAGS;
         break;
+    case INTERFACE_PM_INFO_CONNECTOR_SFP28_SR:
+    case INTERFACE_PM_INFO_CONNECTOR_SFP28_LR:
+    case INTERFACE_PM_INFO_CONNECTOR_SFP28_CR:
+        return PM_SFP28_25G_FLAGS;
+        break;
     case INTERFACE_PM_INFO_CONNECTOR_QSFP_CR4:
     case INTERFACE_PM_INFO_CONNECTOR_QSFP_SR4:
     case INTERFACE_PM_INFO_CONNECTOR_QSFP_LR4:
         return PM_QSFP_PLUS_40G_FLAGS;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_SR4:
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4:
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4:
+        return PM_QSFP28_100G_FLAGS;
         break;
     case INTERFACE_PM_INFO_CONNECTOR_ABSENT:
     case INTERFACE_PM_INFO_CONNECTOR_UNKNOWN:
@@ -277,6 +296,9 @@ get_connector_flags(enum ovsrec_interface_pm_info_connector_e connector)
     case INTERFACE_PM_INFO_CONNECTOR_SFP_CX:
     case INTERFACE_PM_INFO_CONNECTOR_SFP_FC:
     case INTERFACE_PM_INFO_CONNECTOR_SFP_LRM:
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_PSM4:
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_CWDM4:
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_CLR4:
     default:
         return PM_UNSUPPORTED_FLAG;
         break;
@@ -310,6 +332,24 @@ get_connector_if_type(enum ovsrec_interface_pm_info_connector_e connector)
         break;
     case INTERFACE_PM_INFO_CONNECTOR_QSFP_LR4:
         return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_40GBASE_LR4;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_SFP28_CR:
+        return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_25GBASE_CR;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_SFP28_SR:
+        return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_25GBASE_SR;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_SFP28_LR:
+        return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_25GBASE_LR;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4:
+        return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_100GBASE_CR4;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_SR4:
+        return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_100GBASE_SR4;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4:
+        return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_100GBASE_LR4;
         break;
     default:
         return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_UNKNOWN;
@@ -504,6 +544,9 @@ intfd_parse_hw_info(struct intf_hw_info *hw_info,
     } else if (data && (STR_EQ(data, INTERFACE_HW_INTF_INFO_MAP_CONNECTOR_QSFP_PLUS))) {
         hw_info->connector = INTERFACE_HW_INTF_INFO_CONNECTOR_QSFP_PLUS;
 
+    } else if (data && (STR_EQ(data, INTERFACE_HW_INTF_INFO_MAP_CONNECTOR_QSFP28))) {
+        hw_info->connector = INTERFACE_HW_INTF_INFO_CONNECTOR_QSFP28;
+
     }
 
     memset(hw_info->speeds, 0, sizeof(hw_info->speeds));
@@ -667,7 +710,16 @@ intfd_parse_split_pm_info(struct intf_pm_info *pm_info, const struct smap *ifrow
     }
 
     data = smap_get(ifrow_pm_info, INTERFACE_PM_INFO_MAP_CONNECTOR);
-    if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP_CR4))) {
+    if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_CR;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_LR;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_SR4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_SR;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP_CR4))) {
         pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP_DAC;
 
     } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP_LR4))) {
@@ -734,7 +786,25 @@ intfd_parse_pm_info(struct intf_hw_info *hw_info, struct intf_pm_info *pm_info,
     pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_UNKNOWN;
 
     data = smap_get(ifrow_pm_info, INTERFACE_PM_INFO_MAP_CONNECTOR);
-    if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP_CR4))) {
+    if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_SR4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_QSFP28_SR4;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP28_CR))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_CR;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP28_LR))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_LR;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP28_SR))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_SR;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP_CR4))) {
         pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_QSFP_CR4;
 
     } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP_LR4))) {
@@ -1031,12 +1101,12 @@ del_old_port(struct shash_node *sh_node)
  * disabled  lanes_split
  *                  Interface is not usable due to the interface being
  *                  configured in split mode.  Applicable to
- *                  splittable primary interface only (e.g. QSFP+).
+ *                  splittable primary interface only (e.g. QSFP+, QSFP28).
  *
  * disabled  lanes_not_split
  *                  Interface is not usable due to the interface being
  *                  configured in non-split mode. Applicable to
- *                  splittable subinterfaces only (e.g. QSFP+).
+ *                  splittable subinterfaces only (e.g. QSFP+, QSFP28).
  *
  * disabled  admin_down
  *                  Interface "user_config:admin" property is set to
@@ -1187,9 +1257,20 @@ validate_n_set_interface_capability(struct iface *intf)
         return;
     }
 
-    if (CONNECTOR_IS_SFP_PLUS(intf)) {
+    if (CONNECTOR_IS_SFP_PLUS_10G(intf)) {
         intf->op_state.autoneg_capability = INTFD_AUTONEG_CAPABILITY_UNSUPPORTED;
         intf->op_state.speeds[0] = SPEED_10G;
+        intf->op_state.n_speeds = 1;
+
+    } else if (CONNECTOR_IS_SFP28_25G(intf)) {
+        /* SFP28 CR requires AN, SR/LR do not. */
+        if (INTERFACE_PM_INFO_CONNECTOR_SFP28_CR == intf->pm_info.connector) {
+            intf->op_state.autoneg_capability = INTFD_AUTONEG_CAPABILITY_REQUIRED;
+        } else {
+            intf->op_state.autoneg_capability = INTFD_AUTONEG_CAPABILITY_UNSUPPORTED;
+        }
+
+        intf->op_state.speeds[0] = SPEED_25G;
         intf->op_state.n_speeds = 1;
 
     } else if (CONNECTOR_IS_SFP(intf)) {
@@ -1207,6 +1288,17 @@ validate_n_set_interface_capability(struct iface *intf)
         }
 
         intf->op_state.speeds[0] = SPEED_40G;
+        intf->op_state.n_speeds = 1;
+
+    } else if (CONNECTOR_IS_QSFP28_100G(intf)) {
+        /* QSFP28 CR4 requires AN, SR4/LR4 do not. */
+        if (INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4 == intf->pm_info.connector) {
+            intf->op_state.autoneg_capability = INTFD_AUTONEG_CAPABILITY_REQUIRED;
+        } else {
+            intf->op_state.autoneg_capability = INTFD_AUTONEG_CAPABILITY_UNSUPPORTED;
+        }
+
+        intf->op_state.speeds[0] = SPEED_100G;
         intf->op_state.n_speeds = 1;
 
     } else {
