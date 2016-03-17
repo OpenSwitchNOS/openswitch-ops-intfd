@@ -62,6 +62,7 @@
 #include <shash.h>
 
 #include "intfd.h"
+#include "eventlog.h"
 
 VLOG_DEFINE_THIS_MODULE(ops_intfd);
 
@@ -101,6 +102,8 @@ intfd_init(const char *db_path)
 {
     /* Initialize IDL through a new connection to the DB. */
     intfd_ovsdb_init(db_path);
+
+    event_log_init("INTERFACE");
 
     /* Register ovs-appctl commands for this daemon. */
     unixctl_command_register("ops-intfd/dump", "", 0, 1, intfd_unixctl_dump, NULL);
