@@ -62,6 +62,7 @@
 #include <shash.h>
 
 #include "intfd.h"
+#include "eventlog.h"
 
 VLOG_DEFINE_THIS_MODULE(ops_intfd);
 
@@ -99,8 +100,15 @@ intfd_unixctl_dump(struct unixctl_conn *conn, int argc,
 static void
 intfd_init(const char *db_path)
 {
+    int retval;
+
     /* Initialize IDL through a new connection to the DB. */
     intfd_ovsdb_init(db_path);
+
+    retval = event_log_init("INTERFACE");
+    if(retval < 0) {
+        VLOG_ERR("Event log initialization failed for interface");
+    }
 
     /* Register ovs-appctl commands for this daemon. */
     unixctl_command_register("ops-intfd/dump", "", 0, 1, intfd_unixctl_dump, NULL);

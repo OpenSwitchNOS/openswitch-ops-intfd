@@ -167,3 +167,17 @@ def test_intfd_ct_admin_state(topology, step):
         port=ops1.ports["if04"]
     ), shell="vsctl")
     assert "enable=\"false\"" in out
+
+    step("Step 16- Event logging happens for interface up/down")
+    with ops1.libs.vtysh.ConfigInterface('if01') as ctx:
+        ctx.shutdown()
+        ctx.no_shutdown()
+    output = ops1("show events")
+    lines = output.split('\n')
+    counter = 0
+    for line in lines:
+        if "Interface port_admin set to down for 1 interface" in line:
+            counter += 1
+        if "Interface port_admin set to up for 1 interface" in line:
+            counter += 1
+    assert counter > 3
