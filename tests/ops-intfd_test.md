@@ -1,19 +1,91 @@
 # ops-intfd Test Cases
 
-[TOC]
+# Table of Contents
+- [user config](#user-config)
+	- [Objective](#objective)
+	- [Requirements](#requirements)
+	- [Setup](#setup)
+		- [Topology Diagram](#topology-diagram)
+	- [Description](#description)
+	- [Test Result Criteria](#test-result-criteria)
+		- [Test Pass Criteria](#test-pass-criteria)
+		- [Test Fail Criteria](#test-fail-criteria)
+- [pm info detect](#pm-info-detect)
+	- [Objective](#objective)
+	- [Requirements](#requirements)
+	- [Setup](#setup)
+		- [Topology Diagram](#topology-diagram)
+	- [Description](#description)
+	- [Test Result Criteria](#test-result-criteria)
+		- [Test Pass Criteria](#test-pass-criteria)
+		- [Test Fail Criteria](#test-fail-criteria)
+- [user config autoneg](#user-config-autoneg)
+	- [Objective](#objective)
+	- [Requirements](#requirements)
+	- [Setup](#setup)
+		- [Topology Diagram#](#topology-diagram)
+	- [Description](#description)
+	- [Test Result Criteria](#test-result-criteria)
+		- [Test Pass Criteria](#test-pass-criteria)
+		- [Test Fail Criteria](#test-fail-criteria)
+- [user config pause](#user-config-pause)
+	- [Objective](#objective)
+	- [Requirements](#requirements)
+	- [Setup](#setup)
+		- [Topology Diagram#](#topology-diagram)
+	- [Description](#description)
+	- [Test Result Criteria](#test-result-criteria)
+		- [Test Pass Criteria](#test-pass-criteria)
+		- [Test Fail Criteria](#test-fail-criteria)
+- [user config qsfp splitter](#user-config-qsfp-splitter)
+	- [Objective](#objective)
+	- [Requirements](#requirements)
+	- [Setup](#setup)
+		- [Topology Diagram#](#topology-diagram)
+	- [Description](#description)
+	- [Test Result Criteria](#test-result-criteria)
+		- [Test Pass Criteria](#test-pass-criteria)
+		- [Test Fail Criteria](#test-fail-criteria)
+- [fixed 1G fixed ports](#fixed-1g-fixed-ports)
+	- [Objective](#objective)
+	- [Requirements](#requirements)
+	- [Setup](#setup)
+		- [Topology Diagram#](#topology-diagram)
+	- [Description](#description)
+	- [Test Result Criteria](#test-result-criteria)
+		- [Test Pass Criteria](#test-pass-criteria)
+		- [Test Fail Criteria](#test-fail-criteria)
+- [LAG shutdown/no shutdown](#lag-shutdownno-shutdown)
+	- [Objective](#objective)
+	- [Requirements](#requirements)
+	- [Setup](#setup)
+		- [Topology Diagram](#topology-diagram)
+	- [Description](#description)
+	- [Test Result Criteria](#test-result-criteria)
+		- [Test Pass Criteria](#test-pass-criteria)
+		- [Test Fail Criteria](#test-fail-criteria)
+- [Validate output for show running-config interface lag](#validate-output-for-show-running-config-interface-lag)
+	- [Objective](#objective)
+	- [Requirements](#requirements)
+	- [Setup](#setup)
+		- [Topology Diagram#](#topology-diagram)
+	- [Description](#description)
+	- [Test Result Criteria](#test-result-criteria)
+		- [Test Pass Criteria](#test-pass-criteria)
+		- [Test Fail Criteria](#test-fail-criteria)
 
-##  user config ##
-### Objective ###
+##  user config
+### Objective
 Verify user configurable options work correctly.
-### Requirements ###
+### Requirements
  - Virtual Mininet Test Setup
 
-### Setup ###
-#### Topology Diagram ####
+### Setup
+#### Topology Diagram
 ```
 [h1]<-->[s1]
 ```
-### Description ###
+### Description
 1. Set admin=up on interface
  - Verify "error=module\_missing"
 2. Set admin=down
@@ -40,24 +112,24 @@ Verify user configurable options work correctly.
 12. Set speeds=<invalid value>
  -  Verify error="invalid\_speeds"
 
-### Test Result Criteria ###
-#### Test Pass Criteria ####
+### Test Result Criteria
+#### Test Pass Criteria
 All verifications pass.
-#### Test Fail Criteria ####
+#### Test Fail Criteria
 One or more verifications fail.
 
-##  pm info detect ##
-### Objective ###
+##  pm info detect
+### Objective
 Verify that error is correctly set for various pm conditions.
-### Requirements ###
+### Requirements
  - Virtual Mininet Test Setup
 
-### Setup ###
-#### Topology Diagram ####
+### Setup
+#### Topology Diagram
 ```
 [h1]<-->[s1]
 ```
-### Description ###
+### Description
 1. Set pm info to valid values
  - Verify error is not "module\_missing"
 2. Set pm info to "absent"
@@ -79,24 +151,24 @@ Verify that error is correctly set for various pm conditions.
 11. Set child pm info connector to invalid values
  -  Verify error="module\_unsupported"
 
-### Test Result Criteria ###
-#### Test Pass Criteria ####
+### Test Result Criteria
+#### Test Pass Criteria
 All verifications pass.
-#### Test Fail Criteria ####
+#### Test Fail Criteria
 One or more verifications fail.
 
-##  user config autoneg  ##
-### Objective ###
+##  user config autoneg
+### Objective
 Verify that response to user configuration of autoneg is handled correctly based on pm type.
-### Requirements ###
+### Requirements
  - Virtual Mininet Test Setup
 
-### Setup ###
-#### Topology Diagram ####
+### Setup
+#### Topology Diagram#
 ```
 [h1]<-->[s1]
 ```
-### Description ###
+### Description
 1. Clear user config for SFP interface and QSFP interface (note: autoneg is not set)
 2. Set SFP pm info to valid values
  - Verify that hw\_intf\_config:autoneg is set appropriately
@@ -158,46 +230,46 @@ Verify that response to user configuration of autoneg is handled correctly based
 26. Set QSFP connector="QSFP\_LR4", autoneg="off", speeds=40000
  -  Verify autoneg="off", speeds=40000
 
-### Test Result Criteria ###
-#### Test Pass Criteria ####
+### Test Result Criteria
+#### Test Pass Criteria
 All verifications pass.
-#### Test Fail Criteria ####
+#### Test Fail Criteria
 One or more verifications fail.
 
-##  user config pause ##
-### Objective ###
+##  user config pause
+### Objective
 Verify that pause configuration is handled correctly
-### Requirements ###
+### Requirements
  - Virtual Mininet Test Setup
 
-### Setup ###
-#### Topology Diagram ####
+### Setup
+#### Topology Diagram#
 ```
 [h1]<-->[s1]
 ```
-### Description ###
+### Description
 1. Clear user configuration for SFP interface
 2. Set pause to each of "none", "rx", "tx", "rxtx"
  - Verify hw\_intf\_config:pause is set accordingly
 
-### Test Result Criteria ###
-#### Test Pass Criteria ####
+### Test Result Criteria
+#### Test Pass Criteria
 All verifications pass.
-#### Test Fail Criteria ####
+#### Test Fail Criteria
 One or more verifications fail.
 
-##  user config qsfp splitter ##
-### Objective ###
+##  user config qsfp splitter
+### Objective
 Verify that QSFP splitter configuration is handled correctly
-### Requirements ###
+### Requirements
  - Virtual Mininet Test Setup
 
-### Setup ###
-#### Topology Diagram ####
+### Setup
+#### Topology Diagram#
 ```
 [h1]<-->[s1]
 ```
-### Description ###
+### Description
 1. Clear user configuration for QSFP interface
  - Verify parent error="admin\_down"
  - Verify child error="lanes\_not\_split"
@@ -215,33 +287,33 @@ Verify that QSFP splitter configuration is handled correctly
 7. Set QSFP parent to "no-split"
  - Verify children not up
 
-### Test Result Criteria ###
-#### Test Pass Criteria ####
+### Test Result Criteria
+#### Test Pass Criteria
 All verifications pass.
-#### Test Fail Criteria ####
+#### Test Fail Criteria
 One or more verifications fail.
 
-##  fixed 1G fixed ports ##
-### Objective ###
+##  fixed 1G fixed ports
+### Objective
 Verify fixed ports (not pluggable) are handled correctly
-### Requirements ###
+### Requirements
  - Virtual Mininet Test Setup
 
-### Setup ###
-#### Topology Diagram ####
+### Setup
+#### Topology Diagram#
 ```
 [h1]<-->[s1]
 ```
-### Description ###
+### Description
 1. Read fixed port hw\_intf\_info
  - Verify pluggable="false", connector="RJ45", error="admin\_down"
 2. Set fixed port admin="up"
  - Verify hw\_enable="true", autoneg="on", intf\_type="1GBASE\_T"
 
-### Test Result Criteria ###
-#### Test Pass Criteria ####
+### Test Result Criteria
+#### Test Pass Criteria
 All verifications pass.
-#### Test Fail Criteria ####
+#### Test Fail Criteria
 One or more verifications fail.
 
 ##  LAG shutdown/no shutdown
@@ -298,3 +370,34 @@ Verify that the shut/no shut events are recorded in "show events"
 All verifications pass.
 #### Test Fail Criteria
 One or more verifications fail.
+
+##  Validate output for show running-config interface lag
+### Objective
+Verify output for `show running-config interface` command
+### Requirements
+ - Virtual Mininet Test Setup
+ - Test script tests/test_intfd_ct_lacp.py
+
+### Setup
+#### Topology Diagram#
+```
+[s1]
+```
+### Description
+1. Apply ipv4 address 10.1.1.1/24 to Lag 1
+2. Apply ipv6 address 2001::1/12 to Lag 1
+3. Get output from `show running-config interface`
+4. Get output from `show running-config interface lag1`
+
+
+### Test Result Criteria
+#### Test Pass Criteria
+1. Validate output for show command in step 3 has ipv4 and ipv6 addresses added
+in step 1 and 2
+2. Validate output for show command in step 4 has ipv4 and ipv6 addresses added
+in step 1 and step 2
+#### Test Fail Criteria
+1. Validate output for show command in step 3 doesn't have ipv4 and ipv6
+addresses added in step 1 and 2
+2. Validate output for show command in step 4 doesn't have ipv4 and ipv6
+addresses added in step 1 and step 2
