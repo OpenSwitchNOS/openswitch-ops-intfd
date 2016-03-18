@@ -144,25 +144,26 @@ class adminstateupdateCTTest( OpsVsiTest ):
         s1.cmdCLI(cmd)
         s1.cmdCLI("no shutdown")
         s1.cmdCLI("lag 1")
+        s1.cmdCLI("interface lag 1")
+        s1.cmdCLI("shutdown")
         s1.cmdCLI("exit")
         s1.cmdCLI("exit")
-        cmd = "/usr/bin/ovs-vsctl set port %s admin=down" % lag_interface
-        s1.ovscmd(cmd)
-        sleep(60)
+        sleep(30)
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % second_interface
         output = s1.ovscmd(cmd)
-        assert interface_down_string in output, 'Interface state does not change'
+        assert interface_down_string in output, 'Interface state is not down'
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % third_interface
         output = s1.ovscmd(cmd)
-        assert interface_down_string in output, 'Interface state does not change'
+        assert interface_down_string in output, 'Interface state is not down'
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % fourth_interface
         output = s1.ovscmd(cmd)
-        assert interface_down_string in output, 'Interface state does not change'
-        info('#### All interfaces under the lag go down as soon as lag is down #####\n')
+        assert interface_down_string in output, 'Interface state is not down'
+        info('#### All interfaces under the lag go up as soon as lag is up #####\n')
 
-        cmd = "/usr/bin/ovs-vsctl set port %s admin=up" % lag_interface
-        s1.ovscmd(cmd)
-        sleep(60)
+        s1.cmdCLI("configure terminal")
+        s1.cmdCLI("interface lag 1")
+        s1.cmdCLI("no shutdown")
+        sleep(30)
 
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % second_interface
         output = s1.ovscmd(cmd)
