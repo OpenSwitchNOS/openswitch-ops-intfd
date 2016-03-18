@@ -1259,6 +1259,17 @@ parse_lag(struct vty *vty)
             {
                 vty_out (vty, "%3slacp rate %s%s"," ", data, VTY_NEWLINE);
             }
+
+            if(port_row->ip4_address)
+            {
+                vty_out(vty, "%3sip address %s %s", "", port_row->ip4_address, VTY_NEWLINE);
+            }
+
+            if(port_row->ip6_address)
+            {
+                vty_out(vty, "%3sipv6 address %s %s", "", port_row->ip6_address, VTY_NEWLINE);
+            }
+
         }
     }
 
