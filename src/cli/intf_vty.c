@@ -1214,6 +1214,12 @@ parse_lag(struct vty *vty)
             /* Print the LAG port name because lag port is present. */
             vty_out (vty, "interface lag %s%s", &port_row->name[LAG_PORT_NAME_PREFIX_LENGTH], VTY_NEWLINE);
 
+            data = port_row->admin;
+            if(data && strncmp(data, OVSREC_PORT_ADMIN_UP,
+                               strlen(OVSREC_PORT_ADMIN_UP)) == 0) {
+                vty_out(vty, "%3s%s%s", "", "no shutdown", VTY_NEWLINE);
+            }
+
             if (check_port_in_bridge(port_row->name))
             {
                 vty_out (vty, "%3s%s%s", "", "no routing", VTY_NEWLINE);

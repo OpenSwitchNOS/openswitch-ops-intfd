@@ -148,6 +148,7 @@ class adminstateupdateCTTest( OpsVsiTest ):
         s1.cmdCLI("exit")
         cmd = "/usr/bin/ovs-vsctl set port %s admin=down" % lag_interface
         s1.ovscmd(cmd)
+        sleep(60)
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % second_interface
         output = s1.ovscmd(cmd)
         assert interface_down_string in output, 'Interface state does not change'
@@ -161,6 +162,8 @@ class adminstateupdateCTTest( OpsVsiTest ):
 
         cmd = "/usr/bin/ovs-vsctl set port %s admin=up" % lag_interface
         s1.ovscmd(cmd)
+        sleep(60)
+
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % second_interface
         output = s1.ovscmd(cmd)
         assert interface_up_string in output, 'Interface state does not change'
@@ -179,6 +182,7 @@ class adminstateupdateCTTest( OpsVsiTest ):
         s1.cmdCLI("shutdown")
         s1.cmdCLI("exit")
         s1.cmdCLI("exit")
+        sleep(60)
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % second_interface
         output = s1.ovscmd(cmd)
         assert interface_down_string in output, 'Interface state does not change'
@@ -191,7 +195,7 @@ class adminstateupdateCTTest( OpsVsiTest ):
         s1.cmdCLI("interface 4")
         s1.cmdCLI("shutdown")
         s1.cmdCLI("exit")
-        sleep(10)
+        sleep(60)
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % third_interface
         output = s1.ovscmd(cmd)
         assert interface_down_string in output, 'Interface state does not change'
