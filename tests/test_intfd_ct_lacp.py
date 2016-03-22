@@ -125,8 +125,24 @@ class LACPCliTest(OpsVsiTest):
 
         return True
 
+    def InterfaceLagx(self):
+        info("########## Test interface lagXX command ##########\n")
+        s1 = self.net.switches[0]
 
-@pytest.mark.skipif(True, reason="Disabling old tests")
+        # Verify 'show interface lag 1' shows correct error
+        info("  ######## Verify interface lag1 ########\n")
+        success = 0
+        out = s1.cmdCLI('interface lag1')
+        lines = out.split('\n')
+        for line in lines:
+            if 'Unknown command' in line:
+                success += 1
+        assert success == 1,\
+            'Test interface lag1 command - FAILED!'
+
+        return True
+
+
 class Test_lacp_cli:
 
     def setup(self):
@@ -154,6 +170,11 @@ class Test_lacp_cli:
         if self.test.show_running_config_lag_interface():
             info('''
 ########## Test show running-config interface lag command - SUCCESS! ##########
+''')
+    def test_InterfaceLagx(self):
+        if self.test.InterfaceLagx():
+            info('''
+########## Test interface lagXX command - SUCCESS! ##########
 ''')
 
     def teardown_class(cls):
