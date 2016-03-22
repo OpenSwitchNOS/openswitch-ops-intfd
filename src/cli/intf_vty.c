@@ -109,25 +109,7 @@ compare_nodes_by_interface_in_numerical(const void *a_, const void *b_)
 const struct shash_node **
 sort_interface(const struct shash *sh)
 {
-    if (shash_is_empty(sh)) {
-        return NULL;
-    } else {
-        const struct shash_node **nodes;
-        struct shash_node *node;
-
-        size_t i, n;
-
-        n = shash_count(sh);
-        nodes = xmalloc(n * sizeof *nodes);
-        i = 0;
-        SHASH_FOR_EACH (node, sh) {
-            nodes[i++] = node;
-        }
-        ovs_assert(i == n);
-
-        qsort(nodes, n, sizeof *nodes, compare_nodes_by_interface_in_numerical);
-        return nodes;
-    }
+    return shash_sort_with_compar(sh, compare_nodes_by_interface_in_numerical);
 }
 
 
