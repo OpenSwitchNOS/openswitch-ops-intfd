@@ -2400,12 +2400,10 @@ DEFUN (vtysh_interface,
     const struct ovsrec_interface *if_row = NULL;
     uint16_t flag = 1;
 
-    if (strchr(argv[0], '.'))
-    {
+    if (strchr(argv[0], '.')) {
         return create_sub_interface(argv[0]);
     }
-    else
-    {
+    else {
         vty->node = INTERFACE_NODE;
     }
 
@@ -2418,37 +2416,33 @@ DEFUN (vtysh_interface,
             return CMD_OVSDB_FAILURE;
         }
     }
-    else if (strlen(argv[0]) < MAX_IFNAME_LENGTH)
-    {
-        strncpy(ifnumber, argv[0], MAX_IFNAME_LENGTH);
+    else if (strncmp(argv[0], LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) == 0) {
+            vty_out(vty, "%% Unknown command.%s", VTY_NEWLINE);
+            return CMD_SUCCESS;
+         } else if (strlen(argv[0]) < MAX_IFNAME_LENGTH) {
+                   strncpy(ifnumber, argv[0], MAX_IFNAME_LENGTH);
 
-        OVSREC_INTERFACE_FOR_EACH (if_row, idl)
-        {
-            if (strcmp (if_row->name, ifnumber) == 0)
-            {
-                if ((if_row->error != NULL) &&
-                    ((strcmp(if_row->error, "lanes_split")) == 0))
-                {
-                    vty_out(vty, "Interface Warning : Split Interface\n");
-                    flag = 0;
-                    break;
+                   OVSREC_INTERFACE_FOR_EACH (if_row, idl)
+                   {
+                       if (strcmp (if_row->name, ifnumber) == 0) {
+                           if ((if_row->error != NULL) &&
+                               ((strcmp(if_row->error, "lanes_split")) == 0)) {
+                              vty_out(vty, "Interface Warning : Split Interface\n");
+                              flag = 0;
+                              break;
+                           }
+                       }
+                   }
+                   if (flag) {
+                      default_port_add(ifnumber);
+                   }
                 }
-            }
-        }
-        if(flag)
-        {
-            default_port_add(ifnumber);
-        }
-    }
-    else
-    {
-        return CMD_ERR_NO_MATCH;
-    }
-
-  VLOG_DBG("%s ifnumber = %s\n", __func__, ifnumber);
-  vty->index = ifnumber;
-
-  return CMD_SUCCESS;
+                else {
+                    return CMD_ERR_NO_MATCH;
+                }
+    VLOG_DBG("%s ifnumber = %s\n", __func__, ifnumber);
+    vty->index = ifnumber;
+    return CMD_SUCCESS;
 }
 
 DEFUN (no_vtysh_interface,
