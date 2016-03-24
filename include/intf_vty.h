@@ -37,5 +37,6 @@ void dyncb_helpstr_speeds(struct cmd_token *token, struct vty *vty, \
 void dyncb_helpstr_mtu(struct cmd_token *token, struct vty *vty, \
                        char * const helpstr, int max_strlen);
 const struct shash_node **sort_interface(const struct shash *sh);
+void show_sflow_config (const char *name, const char *align, bool show_cmd);
 
 #endif /* _INFT_VTY_H */
