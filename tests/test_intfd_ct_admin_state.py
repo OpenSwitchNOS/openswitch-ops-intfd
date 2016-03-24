@@ -17,6 +17,8 @@
 
 from opsvsi.docker import *
 from opsvsi.opsvsitest import *
+from pytest import mark
+
 
 first_interface = "1"
 second_interface = "2"
@@ -205,6 +207,7 @@ class adminstateupdateCTTest( OpsVsiTest ):
         assert interface_down_string in output, 'Interface state does not change'
         info('#### All interfaces under the lag go down as soon as lag is delete #####\n')
 
+@mark.skipif(True, reason="Skipping on Taiga ID 355")
 class Test_portd_admin_state_update:
 
     def setup_class(cls):
