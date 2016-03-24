@@ -1273,7 +1273,7 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
     bool bPrinted = false;
     size_t i = 0;
     int udp_dport = 0;
-    char *helper_ip = NULL, *serverip = NULL;
+    char *buff = NULL, *serverip = NULL;
 
     OVSREC_INTERFACE_FOR_EACH(row, idl)
     {
@@ -1384,7 +1384,10 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
 
         print_interface_lag(row->name, vty, &bPrinted);
 
-        /* Displaying the dhcp-relay helper addresses  */
+        /*
+         * Displaying the dhcp-relay helper addresses
+         * and bootp-gateway addresses
+         */
         OVSREC_DHCP_RELAY_FOR_EACH (row_serv, idl)
         {
             /* get the interface details. */
@@ -1394,9 +1397,16 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
                 {
                     for (i = 0; i < row_serv->n_ipv4_ucast_server; i++)
                     {
-                        helper_ip = row_serv->ipv4_ucast_server[i];
+                        buff = row_serv->ipv4_ucast_server[i];
                         vty_out(vty, "   ip helper-address %s%s",
-                                     helper_ip, VTY_NEWLINE);
+                                     buff, VTY_NEWLINE);
+                    }
+                    buff = (char *)smap_get(&row->other_config,
+                                DHCP_RELAY_OTHER_CONFIG_MAP_BOOTP_GATEWAY);
+                    if (buff)
+                    {
+                        vty_out(vty, "   ip bootp-gateway %s%s",
+                                     buff, VTY_NEWLINE);
                     }
                 }
             }
