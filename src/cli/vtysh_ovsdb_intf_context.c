@@ -177,6 +177,9 @@ vtysh_intf_context_clientcallback(void *p_private)
       vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "no shutdown");
    }
 
+   /* sFlow config */
+   show_sflow_config(ifrow->name, "    ");
+
    if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_VLANSUBINT) == 0)
    {
        if (0 < ifrow->n_subintf_parent)
