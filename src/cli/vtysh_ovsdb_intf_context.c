@@ -138,6 +138,8 @@ vtysh_intf_context_clientcallback(void *p_private)
    const struct ovsrec_interface *ifrow = (struct ovsrec_interface *)p_msg->feature_row;
    const char *cur_state =NULL;
    int64_t vlan_number = 0;
+   const struct ovsrec_port *port_row = NULL;
+   struct smap other_config = SMAP_INITIALIZER(&other_config);
 
    vtysh_ovsdb_intf_cfg intfcfg;
 
@@ -175,6 +177,20 @@ vtysh_intf_context_clientcallback(void *p_private)
    {
       PRINT_INT_HEADER_IN_SHOW_RUN;
       vtysh_ovsdb_cli_print(p_msg, "%4s%s", "", "no shutdown");
+   }
+
+   /* sFlow config */
+   if ((port_row = port_find(ifrow->name))!=NULL)
+   {
+       cur_state = smap_get(&port_row->other_config,
+                            PORT_OTHER_CONFIG_SFLOW_PER_INTERFACE_KEY_STR);
+       if ((NULL != cur_state) &&
+           (strcmp(cur_state,
+                   PORT_OTHER_CONFIG_SFLOW_PER_INTERFACE_VALUE_FALSE) == 0))
+       {
+          PRINT_INT_HEADER_IN_SHOW_RUN;
+          show_sflow_config(ifrow->name, "    ", false);
+       }
    }
 
    if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_VLANSUBINT) == 0)
