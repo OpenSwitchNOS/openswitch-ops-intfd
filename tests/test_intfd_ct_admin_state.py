@@ -196,6 +196,7 @@ class adminstateupdateCTTest( OpsVsiTest ):
         s1.cmdCLI("interface 4")
         s1.cmdCLI("shutdown")
         s1.cmdCLI("exit")
+        s1.cmdCLI("exit")
         sleep(60)
         cmd = "/usr/bin/ovs-vsctl get interface %s hw_intf_config" % third_interface
         output = s1.ovscmd(cmd)

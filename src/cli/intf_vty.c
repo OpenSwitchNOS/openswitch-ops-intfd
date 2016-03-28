@@ -1345,58 +1345,62 @@ parse_lacp_othercfg(const struct smap *ifrow_config, const char *if_name,
 }
 
 static int
-parse_lag(struct vty *vty)
+parse_lag(struct vty *vty, int argc, const char *argv[])
 {
     const char *data = NULL;
     const struct ovsrec_port *port_row = NULL;
+    bool one_lag_to_show;
 
-    OVSREC_PORT_FOR_EACH(port_row, idl)
-    {
-        if(strncmp(port_row->name, LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) == 0)
-        {
-            /* Print the LAG port name because lag port is present. */
-            vty_out (vty, "interface lag %s%s", &port_row->name[LAG_PORT_NAME_PREFIX_LENGTH], VTY_NEWLINE);
-
-            data = port_row->admin;
-            if(data && strncmp(data, OVSREC_PORT_ADMIN_UP,
-                               strlen(OVSREC_PORT_ADMIN_UP)) == 0) {
-                vty_out(vty, "%3s%s%s", "", "no shutdown", VTY_NEWLINE);
+    OVSREC_PORT_FOR_EACH(port_row, idl) {
+        if (strncmp(port_row->name, LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) == 0) {
+            one_lag_to_show = true;
+            if (argc != 0) {
+               if (strlen(argv[0]) > LAG_PORT_NAME_PREFIX_LENGTH) {
+                  if (strncmp(port_row->name, argv[0], strlen(argv[0])) != 0) {
+                      one_lag_to_show = false;
+                  }
+               }
             }
+            if (one_lag_to_show) {
+               /* Print the LAG port name because lag port is present. */
+               vty_out (vty, "interface lag %s%s",
+                        &port_row->name[LAG_PORT_NAME_PREFIX_LENGTH], VTY_NEWLINE);
 
-            if (check_port_in_bridge(port_row->name))
-            {
-                vty_out (vty, "%3s%s%s", "", "no routing", VTY_NEWLINE);
-                parse_vlan(port_row->name, vty);
-            }
+               data = port_row->admin;
+               if (data && strncmp(data, OVSREC_PORT_ADMIN_UP,
+                   strlen(OVSREC_PORT_ADMIN_UP)) == 0) {
+                   vty_out(vty, "%3s%s%s", "", "no shutdown", VTY_NEWLINE);
+               }
 
-            data = port_row->lacp;
-            if(data && strcmp(data, OVSREC_PORT_LACP_OFF) != 0)
-            {
-                vty_out (vty, "%3slacp mode %s%s"," ",data, VTY_NEWLINE);
-            }
+               if (check_port_in_bridge(port_row->name)) {
+                   vty_out (vty, "%3s%s%s", "", "no routing", VTY_NEWLINE);
+                   parse_vlan(port_row->name, vty);
+               }
 
-            data = smap_get(&port_row->other_config, "bond_mode");
+               data = port_row->lacp;
+               if (data && strcmp(data, OVSREC_PORT_LACP_OFF) != 0) {
+                   vty_out (vty, "%3slacp mode %s%s"," ",data, VTY_NEWLINE);
+               }
 
-            if(data)
-            {
-                vty_out (vty, "%3shash %s%s"," ",data, VTY_NEWLINE);
-            }
+               data = smap_get(&port_row->other_config, "bond_mode");
 
-            data = smap_get(&port_row->other_config, "lacp-fallback-ab");
+               if (data) {
+                  vty_out (vty, "%3shash %s%s"," ",data, VTY_NEWLINE);
+               }
 
-            if(data)
-            {
-                if(VTYSH_STR_EQ(data, "true"))
-                {
-                    vty_out (vty, "%3slacp fallback%s"," ", VTY_NEWLINE);
-                }
-            }
+               data = smap_get(&port_row->other_config, "lacp-fallback-ab");
 
-            data = smap_get(&port_row->other_config, "lacp-time");
+               if (data) {
+                  if (VTYSH_STR_EQ(data, "true")) {
+                      vty_out (vty, "%3slacp fallback%s"," ", VTY_NEWLINE);
+                  }
+               }
 
-            if(data)
-            {
-                vty_out (vty, "%3slacp rate %s%s"," ", data, VTY_NEWLINE);
+               data = smap_get(&port_row->other_config, "lacp-time");
+
+               if (data) {
+                  vty_out (vty, "%3slacp rate %s%s"," ", data, VTY_NEWLINE);
+               }
             }
 
             if(port_row->ip4_address)
@@ -1429,12 +1433,9 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
     int udp_dport = 0;
     char *buff = NULL, *serverip = NULL;
 
-    OVSREC_INTERFACE_FOR_EACH(row, idl)
-    {
-        if (0 != argc)
-        {
-            if ((NULL != argv[0]) && (0 != strcmp(argv[0], row->name)))
-            {
+    OVSREC_INTERFACE_FOR_EACH(row, idl) {
+        if (0 != argc) {
+            if ((NULL != argv[0]) && (0 != strcmp(argv[0], row->name))) {
                 continue;
             }
         }
@@ -1594,13 +1595,16 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
 
         print_interface_ospf(row->name, vty, &bPrinted);
 
-        if (bPrinted)
-        {
+        if (bPrinted) {
             vty_out(vty, "   exit%s", VTY_NEWLINE);
+            if (0 != argc) {
+               return CMD_SUCCESS;
+            }
+
         }
     }
 
-    parse_lag(vty);
+    parse_lag(vty, argc, argv);
 
     return CMD_SUCCESS;
 }
