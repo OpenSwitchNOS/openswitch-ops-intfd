@@ -36,6 +36,6 @@ void dyncb_helpstr_speeds(struct cmd_token *token, struct vty *vty, \
                           char * const helpstr, int max_len);
 void dyncb_helpstr_mtu(struct cmd_token *token, struct vty *vty, \
                        char * const helpstr, int max_strlen);
-const struct shash_node **sort_interface(const struct shash *sh);
+const struct shash_node **sort_all_interfaces(const struct shash *sh);
 
 #endif /* _INFT_VTY_H */
