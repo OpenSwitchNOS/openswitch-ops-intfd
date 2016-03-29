@@ -1405,7 +1405,7 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
                         vty_out(vty, "   ip helper-address %s%s",
                                      buff, VTY_NEWLINE);
                     }
-                    buff = (char *)smap_get(&row->other_config,
+                    buff = (char *)smap_get(&row_serv->other_config,
                                 DHCP_RELAY_OTHER_CONFIG_MAP_BOOTP_GATEWAY);
                     if (buff)
                     {
