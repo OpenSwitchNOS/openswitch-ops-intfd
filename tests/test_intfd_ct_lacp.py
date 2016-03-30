@@ -88,17 +88,6 @@ class LACPCliTest(OpsVsiTest):
         assert success == 1,\
             'Test show interface lag 1 command - FAILED!'
 
-        # Verify 'show interface lag' shows correct error
-        info("  ######## Verify show interface lag  ########\n")
-        success = 0
-        out = s1.cmdCLI('do show interface lag')
-        lines = out.split('\n')
-        for line in lines:
-            if 'Command incomplete' in line:
-                success += 1
-        assert success == 1,\
-            'Test show interface lag command - FAILED!'
-
         return True
 
 
