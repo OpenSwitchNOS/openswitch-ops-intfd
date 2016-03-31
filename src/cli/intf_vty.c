@@ -1130,6 +1130,10 @@ parse_l3config(const char *if_name, struct vty *vty)
                          PORT_OTHER_CONFIG_MAP_PROXY_ARP_ENABLED)) {
                 vty_out(vty, "%3s%s%s", "", "ip proxy-arp", VTY_NEWLINE);
             }
+            if (smap_get(&port_row->other_config,
+                         PORT_OTHER_CONFIG_MAP_LOCAL_PROXY_ARP_ENABLED)) {
+                vty_out(vty, "%3s%s%s", "", "ip local-proxy-arp", VTY_NEWLINE);
+            }
         }
     }
     return 0;
@@ -1273,7 +1277,7 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
     bool bPrinted = false;
     size_t i = 0;
     int udp_dport = 0;
-    char *helper_ip = NULL, *serverip = NULL;
+    char *buff = NULL, *serverip = NULL;
 
     OVSREC_INTERFACE_FOR_EACH(row, idl)
     {
@@ -1390,7 +1394,10 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
 
         print_interface_lag(row->name, vty, &bPrinted);
 
-        /* Displaying the dhcp-relay helper addresses  */
+        /*
+         * Displaying the dhcp-relay helper addresses
+         * and bootp-gateway addresses
+         */
         OVSREC_DHCP_RELAY_FOR_EACH (row_serv, idl)
         {
             /* get the interface details. */
@@ -1400,9 +1407,16 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
                 {
                     for (i = 0; i < row_serv->n_ipv4_ucast_server; i++)
                     {
-                        helper_ip = row_serv->ipv4_ucast_server[i];
+                        buff = row_serv->ipv4_ucast_server[i];
                         vty_out(vty, "   ip helper-address %s%s",
-                                     helper_ip, VTY_NEWLINE);
+                                     buff, VTY_NEWLINE);
+                    }
+                    buff = (char *)smap_get(&row->other_config,
+                                DHCP_RELAY_OTHER_CONFIG_MAP_BOOTP_GATEWAY);
+                    if (buff)
+                    {
+                        vty_out(vty, "   ip bootp-gateway %s%s",
+                                     buff, VTY_NEWLINE);
                     }
                 }
             }
@@ -2297,6 +2311,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
     int idx, count;
     const struct ovsrec_port *port_row;
     bool internal_if = false;
+    bool isLag = true;
     const struct ovsdb_datum *datum;
     static char *interface_statistics_keys [] = {
         "rx_packets",
@@ -2429,6 +2444,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         else
         {
             intVal = 0;
+            isLag = false;
             show_interface_status(vty, ifrow, internal_if, brief);
 
             vty_out (vty, " Hardware: Ethernet, MAC Address: %s %s",
@@ -2439,6 +2455,12 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
                   PORT_OTHER_CONFIG_MAP_PROXY_ARP_ENABLED))
             {
                 vty_out(vty, " Proxy ARP is enabled%s", VTY_NEWLINE);
+            }
+
+            if (port_row && smap_get(&port_row->other_config,
+                  PORT_OTHER_CONFIG_MAP_LOCAL_PROXY_ARP_ENABLED))
+            {
+                vty_out(vty, " Local Proxy ARP is enabled%s", VTY_NEWLINE);
             }
 
             /* Displaying ipv4 and ipv6 primary and secondary addresses*/
@@ -2606,7 +2628,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
     {
         show_lacp_interfaces_brief(vty, argv);
     }
-    else
+    else if (isLag)
     {
         show_lacp_interfaces(vty, interface_statistics_keys, argv);
     }

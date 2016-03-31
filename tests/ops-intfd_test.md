@@ -275,3 +275,26 @@ Verify shutdown/no shutdown commands works correctly.
 All verifications pass.
 #### Test Fail Criteria
 One or more verifications fail.
+
+##  Event logging
+### Objective
+Verify event logging for the interface module happens with interface shutdown/no shutdown.
+### Requirements
+ - Virtual Mininet Test Setup
+
+### Setup
+#### Topology Diagram
+```
+[h1]<-->[s1]
+```
+### Description
+1. shut interface 1
+2. unshut interface 1
+
+Verify that the shut/no shut events are recorded in "show events"
+
+### Test Result Criteria
+#### Test Pass Criteria
+All verifications pass.
+#### Test Fail Criteria
+One or more verifications fail.
