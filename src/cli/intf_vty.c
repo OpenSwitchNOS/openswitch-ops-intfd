@@ -50,6 +50,9 @@
 #include "vtysh/utils/vlan_vtysh_utils.h"
 #include "vtysh/utils/lacp_vtysh_utils.h"
 #include "vtysh/utils/intf_vtysh_utils.h"
+#include "openswitch-idl.h"
+#include "openswitch-dflt.h"
+
 
 VLOG_DEFINE_THIS_MODULE(vtysh_interface_cli);
 extern struct ovsdb_idl *idl;
@@ -1139,6 +1142,142 @@ parse_l3config(const char *if_name, struct vty *vty)
     return 0;
 }
 
+/*Function to get the intervals from port table. */
+int64_t
+ospf_get_port_intervals(const struct ovsrec_port* port_row,
+                             const char *key)
+{
+    int i = 0;
+
+    if (!port_row || !key)
+        return 0;
+
+    for (i = 0; i < port_row->n_ospf_intervals; i++)
+    {
+        if (!strcmp(port_row->key_ospf_intervals[i], key))
+            return port_row->value_ospf_intervals[i];
+    }
+
+    return 0;
+}
+
+static int
+print_interface_ospf(const char *if_name, struct vty *vty, bool *bPrinted)
+{
+    const struct ovsrec_port *port_row = NULL;
+    const struct ovsrec_ospf_interface *ospf_interface_row = NULL;
+    int i = 0;
+    int64_t interval = 0;
+    int64_t int_val = 0;
+
+    /* Get the interface row for the interface name passed. */
+    OVSREC_OSPF_INTERFACE_FOR_EACH(ospf_interface_row, idl)
+    {
+        if (strcmp(ospf_interface_row->name, if_name) == 0)
+            break;
+    }
+
+    if (ospf_interface_row == NULL)
+    {
+        return -1;
+    }
+    else
+    {
+        port_row = ospf_interface_row->port;
+    }
+
+    if (port_row == NULL)
+    {
+        return -1;
+    }
+
+    if (!(*bPrinted))
+    {
+        *bPrinted = true;
+        vty_out (vty, "interface %s %s", if_name, VTY_NEWLINE);
+    }
+
+    interval = ospf_get_port_intervals(port_row,
+                                       OSPF_KEY_HELLO_INTERVAL);
+    if ((interval > 0) && (interval != OSPF_HELLO_INTERVAL_DEFAULT))
+        vty_out(vty, "%4s%s %ld%s", " ",
+                           "ip ospf hello-interval", interval, VTY_NEWLINE);
+
+    interval = ospf_get_port_intervals(port_row, OSPF_KEY_DEAD_INTERVAL);
+    if ((interval > 0) && (interval != OSPF_DEAD_INTERVAL_DEFAULT))
+        vty_out(vty, "%4s%s %ld%s", " ",
+                              "ip ospf dead-interval", interval, VTY_NEWLINE);
+
+    interval = ospf_get_port_intervals(port_row,
+                                       OSPF_KEY_RETRANSMIT_INTERVAL);
+    if ((interval > 0) && (interval != OSPF_RETRANSMIT_INTERVAL_DEFAULT))
+        vty_out(vty, "%4s%s %ld%s", " ", "ip ospf retransmit-interval",
+                interval, VTY_NEWLINE);
+
+    interval = ospf_get_port_intervals(port_row, OSPF_KEY_TRANSMIT_DELAY);
+    if ((interval > 0) && (interval != OSPF_TRANSMIT_DELAY_DEFAULT))
+        vty_out(vty, "%4s%s %ld%s", " ",
+                              "ip ospf transmit-delay", interval, VTY_NEWLINE);
+
+    if (port_row->ospf_priority &&
+        (*port_row->ospf_priority != 1))
+    {
+        int_val = *port_row->ospf_priority;
+        vty_out(vty, "%4s%s %ld%s", " ",
+                              "ip ospf priority", int_val, VTY_NEWLINE);
+    }
+
+    if ((port_row->n_ospf_mtu_ignore > 0) &&
+        (*port_row->ospf_mtu_ignore == true))
+        vty_out(vty, "%4s%s%s", " ",
+                              "ip ospf mtu-ignore", VTY_NEWLINE);
+
+    if (port_row->ospf_if_out_cost &&
+        (*port_row->ospf_if_out_cost != OSPF_DEFAULT_COST))
+    {
+        int_val = *port_row->ospf_if_out_cost;
+        vty_out(vty, "%4s%s %ld%s", " ",
+                              "ip ospf cost", int_val, VTY_NEWLINE);
+    }
+
+    if ((port_row->ospf_if_type) &&
+        (strcmp(port_row->ospf_if_type,
+                OVSREC_PORT_OSPF_IF_TYPE_OSPF_IFTYPE_POINTOPOINT) == 0))
+        vty_out(vty, "%4s%s %s%s", " ",
+                              "ip ospf network", "point-to-point", VTY_NEWLINE);
+
+
+    if (port_row->ospf_auth_type)
+    {
+        if (!strcmp(port_row->ospf_auth_type, OVSREC_PORT_OSPF_AUTH_TYPE_TEXT))
+            vty_out(vty, "%4s%s%s", " ", "ip ospf authentication", VTY_NEWLINE);
+        else if (!strcmp(port_row->ospf_auth_type,
+                         OVSREC_PORT_OSPF_AUTH_TYPE_MD5))
+            vty_out(vty, "%4s%s%s", " ",
+                         "ip ospf authentication message-digest", VTY_NEWLINE);
+        else if (!strcmp(port_row->ospf_auth_type,
+                         OVSREC_PORT_OSPF_AUTH_TYPE_NULL))
+            vty_out(vty, "%4s%s%s", " ",
+                                  "ip ospf authentication null", VTY_NEWLINE);
+    }
+
+    for (i = 0; i < port_row->n_ospf_auth_md5_keys; i++)
+    {
+        vty_out(vty, "%4sip ospf message-digest-key %ld md5 %s%s", " ",
+                              port_row->key_ospf_auth_md5_keys[i],
+                              port_row->value_ospf_auth_md5_keys[i],
+                              VTY_NEWLINE);
+
+    }
+
+    if (port_row->ospf_auth_text_key)
+        vty_out(vty, "%4s%s %s%s", " ",
+                              "ip ospf authentication-key",
+                              port_row->ospf_auth_text_key, VTY_NEWLINE);
+
+    return 0;
+}
+
 static int
 print_interface_lag(const char *if_name, struct vty *vty, bool *bPrinted)
 {
@@ -1441,6 +1580,8 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
                 }
             }
         }
+
+        print_interface_ospf(row->name, vty, &bPrinted);
 
         if (bPrinted)
         {
