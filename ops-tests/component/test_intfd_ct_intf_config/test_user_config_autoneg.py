@@ -165,9 +165,9 @@ def test_user_config_autoneg(topology, step):
     sw_set_intf_user_config(ops1, test_intf, ['admin=up'])
     short_sleep()
 
-    x, autoneg, speeds = sw_get_intf_state(ops1, test_intf,
-                                           ['hw_intf_config:autoneg',
-                                            'hw_intf_config:speeds'])
+    autoneg, speeds = sw_get_intf_state(ops1, test_intf,
+                                        ['hw_intf_config:autoneg',
+                                         'hw_intf_config:speeds'])
 
     assert autoneg == 'on' and speeds == sfp_fixed
 
@@ -189,9 +189,9 @@ def test_user_config_autoneg(topology, step):
     hw_enable = sw_get_intf_state(ops1, qsfp_intf, ['hw_intf_config:enable'])
     assert hw_enable == "\"true\""
 
-    x, autoneg, speeds = sw_get_intf_state(ops1, qsfp_intf,
-                                           ['hw_intf_config:autoneg',
-                                            'hw_intf_config:speeds'])
+    autoneg, speeds = sw_get_intf_state(ops1, qsfp_intf,
+                                        ['hw_intf_config:autoneg',
+                                         'hw_intf_config:speeds'])
 
     assert autoneg == 'off' and speeds == qsfp_fixed
 
@@ -203,9 +203,9 @@ def test_user_config_autoneg(topology, step):
     sw_set_intf_user_config(ops1, test_intf, ['admin=up', 'autoneg=on'])
     short_sleep()
 
-    x, autoneg, speeds = sw_get_intf_state(ops1, test_intf,
-                                           ['hw_intf_config:autoneg',
-                                            'hw_intf_config:speeds'])
+    autoneg, speeds = sw_get_intf_state(ops1, test_intf,
+                                        ['hw_intf_config:autoneg',
+                                         'hw_intf_config:speeds'])
 
     assert autoneg == 'on' and speeds == sfp_fixed
 
@@ -243,9 +243,9 @@ def test_user_config_autoneg(topology, step):
     hw_enable = sw_get_intf_state(ops1, qsfp_intf, ['hw_intf_config:enable'])
     assert hw_enable == "\"true\""
 
-    x, autoneg, speeds = sw_get_intf_state(ops1, qsfp_intf,
-                                           ['hw_intf_config:autoneg',
-                                            'hw_intf_config:speeds'])
+    autoneg, speeds = sw_get_intf_state(ops1, qsfp_intf,
+                                        ['hw_intf_config:autoneg',
+                                         'hw_intf_config:speeds'])
 
     assert autoneg == 'off' and speeds == qsfp_fixed
 
@@ -261,9 +261,9 @@ def test_user_config_autoneg(topology, step):
     hw_enable = sw_get_intf_state(ops1, test_intf, ['hw_intf_config:enable'])
     assert hw_enable == "\"true\""
 
-    x, autoneg, speeds = sw_get_intf_state(ops1, test_intf,
-                                           ['hw_intf_config:autoneg',
-                                            'hw_intf_config:speeds'])
+    autoneg, speeds = sw_get_intf_state(ops1, test_intf,
+                                        ['hw_intf_config:autoneg',
+                                         'hw_intf_config:speeds'])
 
     assert autoneg == 'on' and speeds == '"1000"'
 
@@ -279,9 +279,9 @@ def test_user_config_autoneg(topology, step):
     hw_enable = sw_get_intf_state(ops1, qsfp_intf, ['hw_intf_config:enable'])
     assert hw_enable == "\"true\""
 
-    x, autoneg, speeds = sw_get_intf_state(ops1, qsfp_intf,
-                                           ['hw_intf_config:autoneg',
-                                            'hw_intf_config:speeds'])
+    autoneg, speeds = sw_get_intf_state(ops1, qsfp_intf,
+                                        ['hw_intf_config:autoneg',
+                                         'hw_intf_config:speeds'])
 
     assert autoneg == 'off' and speeds == qsfp_fixed
 
@@ -297,9 +297,9 @@ def test_user_config_autoneg(topology, step):
     hw_enable = sw_get_intf_state(ops1, test_intf, ['hw_intf_config:enable'])
     assert hw_enable == "\"true\""
 
-    x, autoneg, speeds = sw_get_intf_state(ops1, test_intf,
-                                           ['hw_intf_config:autoneg',
-                                            'hw_intf_config:speeds'])
+    autoneg, speeds = sw_get_intf_state(ops1, test_intf,
+                                        ['hw_intf_config:autoneg',
+                                         'hw_intf_config:speeds'])
 
     assert autoneg == 'on' and speeds == '"1000"'
 
@@ -342,9 +342,9 @@ def test_user_config_autoneg(topology, step):
     hw_enable = sw_get_intf_state(ops1, qsfp_intf, ['hw_intf_config:enable'])
     assert hw_enable == "\"true\""
 
-    x, autoneg, speeds = sw_get_intf_state(ops1, qsfp_intf,
-                                           ['hw_intf_config:autoneg',
-                                            'hw_intf_config:speeds'])
+    autoneg, speeds = sw_get_intf_state(ops1, qsfp_intf,
+                                        ['hw_intf_config:autoneg',
+                                         'hw_intf_config:speeds'])
 
     assert autoneg == 'off' and speeds == qsfp_fixed
 

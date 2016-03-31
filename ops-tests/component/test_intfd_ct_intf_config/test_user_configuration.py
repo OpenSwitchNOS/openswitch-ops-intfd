@@ -74,7 +74,7 @@ def short_sleep(tm=.5):
     sleep(tm)
 
 
-def test_user_config(topology, step):
+def test_user_configuration(topology, step):
     ops1 = topology.get("ops1")
     assert ops1 is not None
 

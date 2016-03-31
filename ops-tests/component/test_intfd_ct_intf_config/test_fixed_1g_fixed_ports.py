@@ -90,9 +90,9 @@ def test_fixed_1g_fixed_ports(topology, step):
 
     step("Step 2- In VSI environment interfaces 1 - 10 are supposed to be "
          "fixed, without any pluggable modules. If not skip this test.")
-    x, is_pluggable, connector = sw_get_intf_state(ops1, fixed_intf,
-                                                   ['hw_intf_info:pluggable',
-                                                    'hw_intf_info:connector'])
+    is_pluggable, connector = sw_get_intf_state(ops1, fixed_intf,
+                                                ['hw_intf_info:pluggable',
+                                                 'hw_intf_info:connector'])
     assert is_pluggable == '"false"' and connector == '"RJ45"'
 
     step("Step 3- The default state of these interfaces should be "
@@ -103,7 +103,7 @@ def test_fixed_1g_fixed_ports(topology, step):
     step("Step 4- Enable the interface it should come up.")
     sw_set_intf_user_config(ops1, fixed_intf, ['admin=up'])
 
-    x, hw_enable, autoneg, intf_type = sw_get_intf_state(
+    hw_enable, autoneg, intf_type = sw_get_intf_state(
         ops1, fixed_intf, ['hw_intf_config:enable',
                            'hw_intf_config:autoneg',
                            'hw_intf_config:interface_type']
