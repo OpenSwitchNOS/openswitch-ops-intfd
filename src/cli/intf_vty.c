@@ -1434,7 +1434,7 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
                             udp_dport = datum->keys[0].integer;
                         }
                         /* UDP Broadcast Forwarder information. */
-                        vty_out(vty, "%4s%s %s %d%s", "",
+                        vty_out(vty, "%3s%s %s %d%s", "",
                             "ip forward-protocol udp", serverip, udp_dport,
                             VTY_NEWLINE);
                     }
