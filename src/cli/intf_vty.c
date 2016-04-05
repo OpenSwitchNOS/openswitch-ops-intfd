@@ -2644,6 +2644,16 @@ DEFUN (no_vtysh_interface,
      return CMD_SUCCESS;
   }
 
+  if (strstr(argv[0], LAG_PORT_NAME_PREFIX)) {
+      vty_out(vty, "%% Could not remove %s, "
+                   "use \'no interface %s %s\' %s",
+                   argv[0],
+                   LAG_PORT_NAME_PREFIX,
+                   argv[0] + LAG_PORT_NAME_PREFIX_LENGTH,
+                   VTY_NEWLINE);
+      return CMD_WARNING;
+  }
+
   if (VERIFY_VLAN_IFNAME(argv[0]) == 0) {
       GET_VLANIF(ifnumber, argv[0]);
       if (delete_vlan_interface(ifnumber) == CMD_OVSDB_FAILURE) {
