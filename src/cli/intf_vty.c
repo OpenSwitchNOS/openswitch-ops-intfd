@@ -2999,6 +2999,312 @@ DEFUN (no_vtysh_interface,
   return CMD_SUCCESS;
 }
 
+/*
+ * Interface Diagnostics Information
+ */
+int cli_show_xvr_dom_exec (struct cmd_element *self, struct vty *vty,
+        int flags, int argc, const char *argv[])
+{
+    const struct ovsrec_interface *ifrow = NULL;
+    const char *cur_state =NULL;
+    struct shash sorted_interfaces;
+    const struct shash_node **nodes;
+    int idx, count;
+    bool validIntf = false;
+    bool dom_info_present = false;
+    bool is_qsfp_splittable = false;
+
+    struct string_pairs
+    {
+        char *key;
+        char *string;
+        char *unit;
+    };
+
+    static struct string_pairs dom_keys [] = {
+        {"temperature", "Temperature", "C" },
+        {"temperature_high_alarm", "Temperature high alarm", "" },
+        {"temperature_low_alarm", "Temperature low alarm", "" },
+        {"temperature_high_warning", "Temperature high warning", "" },
+        {"temperature_low_warning", "Temperature low warning", "" },
+        {"temperature_high_alarm_threshold", "Temperature high alarm threshold", "C" },
+        {"temperature_low_alarm_threshold", "Temperature low alarm threshold", "C" },
+        {"temperature_high_warning_threshold", "Temperature high warning threshold", "C" },
+        {"temperature_low_warning_threshold", "Temperature low warning threshold", "C" },
+        {"vcc", "Voltage", "V" },
+        {"vcc_high_alarm", "Voltage high alarm", "" },
+        {"vcc_low_alarm", "Voltage high alarm", "" },
+        {"vcc_high_warning", "Voltage high alarm", "" },
+        {"vcc_low_warning", "Voltage low warning", "" },
+        {"vcc_high_alarm_threshold", "Voltage high alarm threshold", "V" },
+        {"vcc_low_alarm_threshold", "Voltage low alarm threshold", "V" },
+        {"vcc_high_warning_threshold", "Voltage high warning threshold", "V" },
+        {"vcc_low_warning_threshold", "Voltage low warning threshold", "V" },
+        {"tx_bias", "Bias current", "mA" },
+        {"tx_bias_high_alarm", "Bias current high alarm", "" },
+        {"tx_bias_low_alarm", "Bias current low alarm", "" },
+        {"tx_bias_high_warning", "Bias current high warning", "" },
+        {"tx_bias_low_warning", "Bias current low warning", "" },
+        {"tx_bias_high_alarm_threshold", "Bias current high alarm threshold", "mA" },
+        {"tx_bias_low_alarm_threshold", "Bias current low alarm threshold", "mA" },
+        {"tx_bias_high_warning_threshold", "Bias current high warning threshold", "mA" },
+        {"tx_bias_low_warning_threshold", "Bias current low warning threshold", "mA" },
+        {"rx_power", "Rx power", "mW" },
+        {"rx_power_high_alarm", "Rx power high alarm", "" },
+        {"rx_power_low_alarm", "Rx power low alarm", "" },
+        {"rx_power_high_warning", "Rx power high warning", "" },
+        {"rx_power_low_warning", "Rx power low warning", "" },
+        {"rx_power_high_alarm_threshold", "Rx power high alarm threshold", "mW" },
+        {"rx_power_low_alarm_threshold", "Rx power low alarm threshold", "mW" },
+        {"rx_power_high_warning_threshold", "Rx power high warning threshold", "mW" },
+        {"rx_power_low_warning_threshold", "Rx power low warning threshold", "mW" },
+        {"tx_power", "Tx power", "mW" },
+        {"tx_power_high_alarm", "Tx power high alarm", "" },
+        {"tx_power_low_alarm", "Tx power low alarm", "" },
+        {"tx_power_high_warning", "Tx power high warning", "" },
+        {"tx_power_low_warning", "Tx power low warning", "" },
+        {"tx_power_high_alarm_threshold", "Tx power high alarm threshold", "mW" },
+        {"tx_power_low_alarm_threshold", "Tx power low alarm threshold", "mW" },
+        {"tx_power_high_warning_threshold", "Tx power high warning threshold", "mW" },
+        {"tx_power_low_warning_threshold", "Tx power low warning threshold", "mW" },
+        {"-","\n Lane 1:\n", "" },
+        {"tx1_bias", "Bias current", "mA" },
+        {"tx1_bias_high_alarm", "Bias current high alarm", "" },
+        {"tx1_bias_low_alarm", "Bias current low alarm", "" },
+        {"tx1_bias_high_warning", "Bias current high warning", "" },
+        {"tx1_bias_low_warning", "Bias current low warning", "" },
+        {"tx1_bias_high_alarm_threshold", "Bias current high alarm threshold", "mA" },
+        {"tx1_bias_low_alarm_threshold", "Bias current low alarm threshold", "mA" },
+        {"tx1_bias_high_warning_threshold", "Bias current high warning threshold", "mA" },
+        {"tx1_bias_low_warning_threshold", "Bias current low warning threshold", "mA" },
+        {"rx1_power", "Rx power", "mW" },
+        {"rx1_power_high_alarm", "Rx power high alarm", "" },
+        {"rx1_power_low_alarm", "Rx power low alarm", "" },
+        {"rx1_power_high_warning", "Rx power high warning", "" },
+        {"rx1_power_low_warning", "Rx power low warning", "" },
+        {"rx1_power_high_alarm_threshold", "Rx power high alarm threshold", "mW" },
+        {"rx1_power_low_alarm_threshold", "Rx power low alarm threshold", "mW" },
+        {"rx1_power_high_warning_threshold", "Rx power high warning threshold", "mW" },
+        {"rx1_power_low_warning_threshold", "Rx power low warning threshold", "mW" },
+        {"-","\n Lane 2:\n", "" },
+        {"tx2_bias", "Bias current", "mA" },
+        {"tx2_bias_high_alarm", "Bias current high alarm", "" },
+        {"tx2_bias_low_alarm", "Bias current low alarm", "" },
+        {"tx2_bias_high_warning", "Bias current high warning", "" },
+        {"tx2_bias_low_warning", "Bias current low warning", "" },
+        {"tx2_bias_high_alarm_threshold", "Bias current high alarm threshold", "mA" },
+        {"tx2_bias_low_alarm_threshold", "Bias current low alarm threshold", "mA" },
+        {"tx2_bias_high_warning_threshold", "Bias current high warning threshold", "mA" },
+        {"tx2_bias_low_warning_threshold", "Bias current low warning threshold", "mA" },
+        {"rx2_power", "Rx power", "mW" },
+        {"rx2_power_high_alarm", "Rx power high alarm", "" },
+        {"rx2_power_low_alarm", "Rx power low alarm", "" },
+        {"rx2_power_high_warning", "Rx power high warning", "" },
+        {"rx2_power_low_warning", "Rx power low warning", "" },
+        {"rx2_power_high_alarm_threshold", "Rx power high alarm threshold", "mW" },
+        {"rx2_power_low_alarm_threshold", "Rx power low alarm threshold", "mW" },
+        {"rx2_power_high_warning_threshold", "Rx power high warning threshold", "mW" },
+        {"rx2_power_low_warning_threshold", "Rx power low warning threshold", "mW" },
+        {"-","\n Lane 3:\n", "" },
+        {"tx3_bias", "Bias current", "mA" },
+        {"tx3_bias_high_alarm", "Bias current high alarm", "" },
+        {"tx3_bias_low_alarm", "Bias current low alarm", "" },
+        {"tx3_bias_high_warning", "Bias current high warning", "" },
+        {"tx3_bias_low_warning", "Bias current low warning", "" },
+        {"tx3_bias_high_alarm_threshold", "Bias current high alarm threshold", "mA" },
+        {"tx3_bias_low_alarm_threshold", "Bias current low alarm threshold", "mA" },
+        {"tx3_bias_high_warning_threshold", "Bias current high warning threshold", "mA" },
+        {"tx3_bias_low_warning_threshold", "Bias current low warning threshold", "mA" },
+        {"rx3_power", "Rx power", "mW" },
+        {"rx3_power_high_alarm", "Rx power high alarm", "" },
+        {"rx3_power_low_alarm", "Rx power low alarm", "" },
+        {"rx3_power_high_warning", "Rx power high warning", "" },
+        {"rx3_power_low_warning", "Rx power low warning", "" },
+        {"rx3_power_high_alarm_threshold", "Rx power high alarm threshold", "mW" },
+        {"rx3_power_low_alarm_threshold", "Rx power low alarm threshold", "mW" },
+        {"rx3_power_high_warning_threshold", "Rx power high warning threshold", "mW" },
+        {"rx3_power_low_warning_threshold", "Rx power low warning threshold", "mW" },
+        {"-","\n Lane 4:\n", "" },
+        {"tx4_bias", "Bias current", "mA" },
+        {"tx4_bias_high_alarm", "Bias current high alarm", "" },
+        {"tx4_bias_low_alarm", "Bias current low alarm", "" },
+        {"tx4_bias_high_warning", "Bias current high warning", "" },
+        {"tx4_bias_low_warning", "Bias current low warning", "" },
+        {"tx4_bias_high_alarm_threshold", "Bias current high alarm threshold", "mA" },
+        {"tx4_bias_low_alarm_threshold", "Bias current low alarm threshold", "mA" },
+        {"tx4_bias_high_warning_threshold", "Bias current high warning threshold", "mA" },
+        {"tx4_bias_low_warning_threshold", "Bias current low warning threshold", "mA" },
+        {"rx4_power", "Rx power", "mW" },
+        {"rx4_power_high_alarm", "Rx power high alarm", "" },
+        {"rx4_power_low_alarm", "Rx power low alarm", "" },
+        {"rx4_power_high_warning", "Rx power high warning", "" },
+        {"rx4_power_low_warning", "Rx power low warning", "" },
+        {"rx4_power_high_alarm_threshold", "Rx power high alarm threshold", "mW" },
+        {"rx4_power_low_alarm_threshold", "Rx power low alarm threshold", "mW" },
+        {"rx4_power_high_warning_threshold", "Rx power high warning threshold", "mW" },
+        {"rx4_power_low_warning_threshold", "Rx power low warning threshold", "mW" },
+        { NULL, NULL, NULL }
+    };
+
+    shash_init(&sorted_interfaces);
+
+    OVSREC_INTERFACE_FOR_EACH(ifrow, idl)
+    {
+        shash_add(&sorted_interfaces, ifrow->name, (void *)ifrow);
+    }
+
+    nodes = sort_interface(&sorted_interfaces);
+
+    count = shash_count(&sorted_interfaces);
+
+    for (idx = 0; idx < count; idx++)
+    {
+        dom_info_present = false;
+        is_qsfp_splittable = false;
+
+        ifrow = (const struct ovsrec_interface *)nodes[idx]->data;
+
+        if ((NULL != argv[0]) && (0 != strcmp(argv[0],ifrow->name)))
+        {
+            continue;
+        }
+
+        if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_INTERNAL) == 0)
+        {
+            /* Skipping internal interfaces */
+            continue;
+        }
+        validIntf = true;
+
+        int i;
+
+        /* Display transceiver information */
+        vty_out (vty, "Interface %s:%s", ifrow->name, VTY_NEWLINE);
+
+        cur_state = smap_get(&ifrow->hw_intf_info,
+                             INTERFACE_HW_INTF_INFO_MAP_CONNECTOR);
+        if (NULL != cur_state)
+        {
+            if (strcmp(cur_state,
+                       INTERFACE_HW_INTF_INFO_MAP_CONNECTOR_RJ45) == 0)
+            {
+                vty_out(vty, " Connector: RJ45%s", VTY_NEWLINE);
+            }
+            else if (strcmp(cur_state,
+                            INTERFACE_HW_INTF_INFO_MAP_CONNECTOR_SFP_PLUS) == 0)
+            {
+                vty_out(vty, " Connector: SFP+%s", VTY_NEWLINE);
+            }
+            else if (strcmp(cur_state,
+                            INTERFACE_HW_INTF_INFO_MAP_CONNECTOR_QSFP_PLUS) == 0)
+            {
+                cur_state = smap_get(&ifrow->hw_intf_info,
+                                     INTERFACE_HW_INTF_INFO_MAP_SPLIT_4);
+                if (cur_state != NULL &&
+                        strcmp(cur_state,
+                               INTERFACE_HW_INTF_INFO_MAP_SPLIT_4_TRUE) == 0)
+                {
+                    vty_out(vty, " Connector: QSFP (splittable)%s",
+                            VTY_NEWLINE);
+                    is_qsfp_splittable = true;
+                }
+                else
+                {
+                    vty_out(vty, " Connector: QSFP %s", VTY_NEWLINE);
+                }
+            }
+            else
+            {
+                vty_out(vty, " Connector: %s%s", cur_state, VTY_NEWLINE);
+            }
+        }
+
+        cur_state = smap_get(&ifrow->hw_intf_info,
+                             INTERFACE_HW_INTF_INFO_MAP_PLUGGABLE);
+
+        if (cur_state != NULL &&
+            strcmp(cur_state, INTERFACE_HW_INTF_INFO_MAP_PLUGGABLE_TRUE) == 0)
+        {
+            cur_state = smap_get(&ifrow->pm_info,
+                                 INTERFACE_PM_INFO_MAP_CONNECTOR);
+            if (cur_state != NULL)
+            {
+                if (strcmp(cur_state,
+                           OVSREC_INTERFACE_PM_INFO_CONNECTOR_ABSENT) == 0)
+                {
+                    vty_out(vty, " Transceiver module: not present%s",
+                            VTY_NEWLINE);
+                }
+                else
+                {
+                    vty_out(vty, " Transceiver module: %s%s", cur_state,
+                            VTY_NEWLINE);
+                    for (i = 0; dom_keys[i].key != NULL; i++)
+                    {
+                        cur_state = smap_get(&ifrow->pm_info,
+                                             dom_keys[i].key);
+                        if (cur_state != NULL)
+                        {
+                            vty_out(vty, "  %s: ", dom_keys[i].string);
+                            vty_out(vty, "%s%s%s", cur_state, dom_keys[i].unit, VTY_NEWLINE);
+                            dom_info_present = true;
+                        }
+                        if (dom_info_present == true && is_qsfp_splittable == true &&
+                            !strcmp(dom_keys[i].key, "-")) {
+                            vty_out(vty, "%s", dom_keys[i].string);
+                        }
+                    }
+                    if (dom_info_present == false)
+                        vty_out(vty, " %% No DOM information available%s",
+                                VTY_NEWLINE);
+
+                }
+            }
+            else
+            {
+                vty_out(vty, " Transceiver module: no information available%s",
+                        VTY_NEWLINE);
+            }
+        }
+        vty_out (vty, "%s", VTY_NEWLINE);
+    }
+
+    shash_destroy(&sorted_interfaces);
+    free(nodes);
+
+    if (validIntf)
+    {
+        return CMD_SUCCESS;
+    }
+    else
+    {
+        vty_out (vty, "Invalid switch interface ID.%s", VTY_NEWLINE);
+        return CMD_OVSDB_FAILURE;
+    }
+}
+
+DEFUN (cli_intf_show_interface_ifname_dom,
+        cli_intf_show_interface_ifname_dom_cmd,
+        "show interface IFNAME dom",
+        SHOW_STR
+        INTERFACE_STR
+        IFNAME_STR
+        "Show transceiver diagnostics info for interface\n")
+{
+    return cli_show_xvr_dom_exec (self, vty, vty_flags, argc, argv);
+}
+
+DEFUN (cli_intf_show_interface_dom,
+        cli_intf_show_interface_dom_cmd,
+        "show interface dom",
+        SHOW_STR
+        INTERFACE_STR
+        "Show transceiver diagnostics info for interfaces\n")
+{
+    argv[0] = NULL;
+    return cli_show_xvr_dom_exec (self, vty, vty_flags, argc, argv);
+}
+
 
 DEFUN (cli_intf_show_intferface_ifname,
         cli_intf_show_intferface_ifname_cmd,
@@ -3409,6 +3715,8 @@ void cli_post_init(void)
     install_element (ENABLE_NODE, &cli_intf_show_intferface_ifname_cmd);
     install_element (ENABLE_NODE, &cli_intf_show_intferface_ifname_br_cmd);
     install_element (ENABLE_NODE, &cli_intf_show_ip_intferface_ifname_cmd);
+    install_element (ENABLE_NODE, &cli_intf_show_interface_dom_cmd);
+    install_element (ENABLE_NODE, &cli_intf_show_interface_ifname_dom_cmd);
     install_element (ENABLE_NODE, &cli_intf_show_run_intf_cmd);
     install_element (ENABLE_NODE, &cli_intf_show_run_intf_if_cmd);
     install_element (ENABLE_NODE, &cli_intf_show_run_intf_mgmt_cmd);
