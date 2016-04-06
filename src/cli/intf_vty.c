@@ -51,6 +51,9 @@
 #include "vtysh/utils/vlan_vtysh_utils.h"
 #include "vtysh/utils/lacp_vtysh_utils.h"
 #include "vtysh/utils/intf_vtysh_utils.h"
+#include "openswitch-idl.h"
+#include "openswitch-dflt.h"
+
 
 VLOG_DEFINE_THIS_MODULE(vtysh_interface_cli);
 extern struct ovsdb_idl *idl;
@@ -1139,6 +1142,142 @@ parse_l3config(const char *if_name, struct vty *vty)
     return 0;
 }
 
+/*Function to get the intervals from port table. */
+int64_t
+ospf_get_port_intervals(const struct ovsrec_port* port_row,
+                             const char *key)
+{
+    int i = 0;
+
+    if (!port_row || !key)
+        return 0;
+
+    for (i = 0; i < port_row->n_ospf_intervals; i++)
+    {
+        if (!strcmp(port_row->key_ospf_intervals[i], key))
+            return port_row->value_ospf_intervals[i];
+    }
+
+    return 0;
+}
+
+static int
+print_interface_ospf(const char *if_name, struct vty *vty, bool *bPrinted)
+{
+    const struct ovsrec_port *port_row = NULL;
+    const struct ovsrec_ospf_interface *ospf_interface_row = NULL;
+    int i = 0;
+    int64_t interval = 0;
+    int64_t int_val = 0;
+
+    /* Get the interface row for the interface name passed. */
+    OVSREC_OSPF_INTERFACE_FOR_EACH(ospf_interface_row, idl)
+    {
+        if (strcmp(ospf_interface_row->name, if_name) == 0)
+            break;
+    }
+
+    if (ospf_interface_row == NULL)
+    {
+        return -1;
+    }
+    else
+    {
+        port_row = ospf_interface_row->port;
+    }
+
+    if (port_row == NULL)
+    {
+        return -1;
+    }
+
+    if (!(*bPrinted))
+    {
+        *bPrinted = true;
+        vty_out (vty, "interface %s %s", if_name, VTY_NEWLINE);
+    }
+
+    interval = ospf_get_port_intervals(port_row,
+                                       OSPF_KEY_HELLO_INTERVAL);
+    if ((interval > 0) && (interval != OSPF_HELLO_INTERVAL_DEFAULT))
+        vty_out(vty, "%4s%s %ld%s", " ",
+                           "ip ospf hello-interval", interval, VTY_NEWLINE);
+
+    interval = ospf_get_port_intervals(port_row, OSPF_KEY_DEAD_INTERVAL);
+    if ((interval > 0) && (interval != OSPF_DEAD_INTERVAL_DEFAULT))
+        vty_out(vty, "%4s%s %ld%s", " ",
+                              "ip ospf dead-interval", interval, VTY_NEWLINE);
+
+    interval = ospf_get_port_intervals(port_row,
+                                       OSPF_KEY_RETRANSMIT_INTERVAL);
+    if ((interval > 0) && (interval != OSPF_RETRANSMIT_INTERVAL_DEFAULT))
+        vty_out(vty, "%4s%s %ld%s", " ", "ip ospf retransmit-interval",
+                interval, VTY_NEWLINE);
+
+    interval = ospf_get_port_intervals(port_row, OSPF_KEY_TRANSMIT_DELAY);
+    if ((interval > 0) && (interval != OSPF_TRANSMIT_DELAY_DEFAULT))
+        vty_out(vty, "%4s%s %ld%s", " ",
+                              "ip ospf transmit-delay", interval, VTY_NEWLINE);
+
+    if (port_row->ospf_priority &&
+        (*port_row->ospf_priority != 1))
+    {
+        int_val = *port_row->ospf_priority;
+        vty_out(vty, "%4s%s %ld%s", " ",
+                              "ip ospf priority", int_val, VTY_NEWLINE);
+    }
+
+    if ((port_row->n_ospf_mtu_ignore > 0) &&
+        (*port_row->ospf_mtu_ignore == true))
+        vty_out(vty, "%4s%s%s", " ",
+                              "ip ospf mtu-ignore", VTY_NEWLINE);
+
+    if (port_row->ospf_if_out_cost &&
+        (*port_row->ospf_if_out_cost != OSPF_DEFAULT_COST))
+    {
+        int_val = *port_row->ospf_if_out_cost;
+        vty_out(vty, "%4s%s %ld%s", " ",
+                              "ip ospf cost", int_val, VTY_NEWLINE);
+    }
+
+    if ((port_row->ospf_if_type) &&
+        (strcmp(port_row->ospf_if_type,
+                OVSREC_PORT_OSPF_IF_TYPE_OSPF_IFTYPE_POINTOPOINT) == 0))
+        vty_out(vty, "%4s%s %s%s", " ",
+                              "ip ospf network", "point-to-point", VTY_NEWLINE);
+
+
+    if (port_row->ospf_auth_type)
+    {
+        if (!strcmp(port_row->ospf_auth_type, OVSREC_PORT_OSPF_AUTH_TYPE_TEXT))
+            vty_out(vty, "%4s%s%s", " ", "ip ospf authentication", VTY_NEWLINE);
+        else if (!strcmp(port_row->ospf_auth_type,
+                         OVSREC_PORT_OSPF_AUTH_TYPE_MD5))
+            vty_out(vty, "%4s%s%s", " ",
+                         "ip ospf authentication message-digest", VTY_NEWLINE);
+        else if (!strcmp(port_row->ospf_auth_type,
+                         OVSREC_PORT_OSPF_AUTH_TYPE_NULL))
+            vty_out(vty, "%4s%s%s", " ",
+                                  "ip ospf authentication null", VTY_NEWLINE);
+    }
+
+    for (i = 0; i < port_row->n_ospf_auth_md5_keys; i++)
+    {
+        vty_out(vty, "%4sip ospf message-digest-key %ld md5 %s%s", " ",
+                              port_row->key_ospf_auth_md5_keys[i],
+                              port_row->value_ospf_auth_md5_keys[i],
+                              VTY_NEWLINE);
+
+    }
+
+    if (port_row->ospf_auth_text_key)
+        vty_out(vty, "%4s%s %s%s", " ",
+                              "ip ospf authentication-key",
+                              port_row->ospf_auth_text_key, VTY_NEWLINE);
+
+    return 0;
+}
+
 static int
 print_interface_lag(const char *if_name, struct vty *vty, bool *bPrinted)
 {
@@ -1259,6 +1398,17 @@ parse_lag(struct vty *vty)
             {
                 vty_out (vty, "%3slacp rate %s%s"," ", data, VTY_NEWLINE);
             }
+
+            if(port_row->ip4_address)
+            {
+                vty_out(vty, "%3sip address %s %s", "", port_row->ip4_address, VTY_NEWLINE);
+            }
+
+            if(port_row->ip6_address)
+            {
+                vty_out(vty, "%3sipv6 address %s %s", "", port_row->ip6_address, VTY_NEWLINE);
+            }
+
         }
     }
 
@@ -1447,6 +1597,8 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
                 }
             }
         }
+
+        print_interface_ospf(row->name, vty, &bPrinted);
 
         if (bPrinted)
         {
@@ -2237,6 +2389,85 @@ cli_show_interface_queue_stats (struct cmd_element *self, struct vty *vty,
     return CMD_SUCCESS;
 }
 
+void
+show_interface_stats(struct vty *vty, const struct ovsrec_interface *ifrow,
+        char *interface_statistics_keys[])
+{
+    const struct ovsdb_datum *datum;
+    union ovsdb_atom atom;
+    unsigned int index;
+    bool l3_intf = (check_iface_in_vrf(ifrow->name) &&
+            port_find(ifrow->name));
+
+    datum = ovsrec_interface_get_statistics(ifrow, OVSDB_TYPE_STRING, OVSDB_TYPE_INTEGER);
+    if (NULL==datum)
+        return;
+
+    vty_out(vty, " RX%s", VTY_NEWLINE);
+
+    atom.string = interface_statistics_keys[0];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "   %10ld input packets  ",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    atom.string = interface_statistics_keys[1];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "   %10ld bytes  ",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    vty_out(vty, "%s", VTY_NEWLINE);
+
+    atom.string = interface_statistics_keys[8];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "   %10ld input error    ",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    atom.string = interface_statistics_keys[4];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "   %10ld dropped  ",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    vty_out(vty, "%s", VTY_NEWLINE);
+
+    atom.string = interface_statistics_keys[7];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "   %10ld CRC/FCS  ",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    vty_out(vty, "%s", VTY_NEWLINE);
+
+    if (l3_intf)
+        show_l3_interface_rx_stats(vty, datum);
+
+    vty_out(vty, " TX%s", VTY_NEWLINE);
+
+    atom.string = interface_statistics_keys[2];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "   %10ld output packets ",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    atom.string = interface_statistics_keys[3];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "   %10ld bytes  ",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    vty_out(vty, "%s", VTY_NEWLINE);
+
+    atom.string = interface_statistics_keys[11];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "   %10ld input error    ",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    atom.string = interface_statistics_keys[9];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "   %10ld dropped  ",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    vty_out(vty, "%s", VTY_NEWLINE);
+
+    atom.string = interface_statistics_keys[10];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "   %10ld collision  ",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    vty_out(vty, "%s", VTY_NEWLINE);
+
+    if (l3_intf)
+        show_l3_interface_tx_stats(vty, datum);
+
+    vty_out(vty, "%s", VTY_NEWLINE);
+}
+
 static void
 show_interface_status(struct vty *vty, const const struct ovsrec_interface *ifrow,
         bool internal_if, bool brief)
@@ -2327,7 +2558,6 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         "collisions",
         "tx_errors"
     };
-    unsigned int index;
     int64_t intVal = 0;
 
     if (brief)
@@ -2364,7 +2594,8 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
              return CMD_SUCCESS;
         }
 
-        if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_SYSTEM) != 0 && strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_INTERNAL) != 0)
+        if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_SYSTEM) != 0 &&
+                strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_INTERNAL) != 0)
         {
             continue;
         }
@@ -2378,8 +2609,6 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
     for (idx = 0; idx < count; idx++)
     {
-        union ovsdb_atom atom;
-
         ifrow = (const struct ovsrec_interface *)nodes[idx]->data;
         internal_if = (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_INTERNAL) == 0) ? true : false;
 
@@ -2549,75 +2778,9 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
                 }
             }
             if(internal_if)
-            {
-                vty_out(vty, "%s", VTY_NEWLINE);
-                continue;
-            }
+                show_l3_stats(vty, ifrow);
             else
-            {
-                datum = ovsrec_interface_get_statistics(ifrow,
-                    OVSDB_TYPE_STRING, OVSDB_TYPE_INTEGER);
-
-            if (NULL==datum) continue;
-
-            vty_out(vty, " RX%s", VTY_NEWLINE);
-
-            atom.string = interface_statistics_keys[0];
-            index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-            vty_out(vty, "   %10ld input packets  ",
-                    (index == UINT_MAX)? 0 : datum->values[index].integer);
-            atom.string = interface_statistics_keys[1];
-            index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-            vty_out(vty, "   %10ld bytes  ",
-                    (index == UINT_MAX)? 0 : datum->values[index].integer);
-            vty_out(vty, "%s", VTY_NEWLINE);
-
-            atom.string = interface_statistics_keys[8];
-            index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-            vty_out(vty, "   %10ld input error    ",
-                    (index == UINT_MAX)? 0 : datum->values[index].integer);
-            atom.string = interface_statistics_keys[4];
-            index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-            vty_out(vty, "   %10ld dropped  ",
-                    (index == UINT_MAX)? 0 : datum->values[index].integer);
-            vty_out(vty, "%s", VTY_NEWLINE);
-
-            atom.string = interface_statistics_keys[7];
-            index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-            vty_out(vty, "   %10ld CRC/FCS  ",
-                    (index == UINT_MAX)? 0 : datum->values[index].integer);
-            vty_out(vty, "%s", VTY_NEWLINE);
-
-            vty_out(vty, " TX%s", VTY_NEWLINE);
-
-            atom.string = interface_statistics_keys[2];
-            index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-            vty_out(vty, "   %10ld output packets ",
-                    (index == UINT_MAX)? 0 : datum->values[index].integer);
-            atom.string = interface_statistics_keys[3];
-            index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-            vty_out(vty, "   %10ld bytes  ",
-                    (index == UINT_MAX)? 0 : datum->values[index].integer);
-            vty_out(vty, "%s", VTY_NEWLINE);
-
-            atom.string = interface_statistics_keys[11];
-            index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-            vty_out(vty, "   %10ld input error    ",
-                    (index == UINT_MAX)? 0 : datum->values[index].integer);
-            atom.string = interface_statistics_keys[9];
-            index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-            vty_out(vty, "   %10ld dropped  ",
-                    (index == UINT_MAX)? 0 : datum->values[index].integer);
-            vty_out(vty, "%s", VTY_NEWLINE);
-
-            atom.string = interface_statistics_keys[10];
-            index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-            vty_out(vty, "   %10ld collision  ",
-                    (index == UINT_MAX)? 0 : datum->values[index].integer);
-            vty_out(vty, "%s", VTY_NEWLINE);
-
-            vty_out(vty, "%s", VTY_NEWLINE);
-            }
+                show_interface_stats(vty, ifrow, interface_statistics_keys);
         }
     }
 
@@ -2812,6 +2975,231 @@ DEFUN (cli_intf_show_intferface_ifname_br,
     return rc;
 }
 
+static void
+show_ip_stats(struct vty *vty, bool isIpv6, const struct ovsdb_datum *datum)
+{
+    char *ipv4_interface_statistics_keys [] = {
+        "ipv4_uc_rx_packets",
+        "ipv4_uc_rx_bytes",
+        "ipv4_mc_rx_packets",
+        "ipv4_mc_rx_bytes",
+        "ipv4_uc_tx_packets",
+        "ipv4_uc_tx_bytes",
+        "ipv4_mc_tx_packets",
+        "ipv4_mc_tx_bytes"
+    };
+
+    char *ipv6_interface_statistics_keys [] = {
+        "ipv6_uc_rx_packets",
+        "ipv6_uc_rx_bytes",
+        "ipv6_mc_rx_packets",
+        "ipv6_mc_rx_bytes",
+        "ipv6_uc_tx_packets",
+        "ipv6_uc_tx_bytes",
+        "ipv6_mc_tx_packets",
+        "ipv6_mc_tx_bytes"
+    };
+
+    unsigned int index;
+    union ovsdb_atom atom;
+    char **stat_keys = (isIpv6 == true) ? ipv6_interface_statistics_keys :
+        ipv4_interface_statistics_keys;
+
+    vty_out(vty, " RX%s", VTY_NEWLINE);
+
+    atom.string = stat_keys[0];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "%10sucast: %"PRIu64" packets, ", "",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    atom.string = stat_keys[1];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "%"PRIu64" bytes",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    vty_out(vty, "%s", VTY_NEWLINE);
+
+    atom.string = stat_keys[2];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "%10smcast: %"PRIu64" packets, ", "",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    atom.string = stat_keys[3];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "%"PRIu64" bytes",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    vty_out(vty, "%s", VTY_NEWLINE);
+
+    vty_out(vty, " TX%s", VTY_NEWLINE);
+
+    atom.string = stat_keys[4];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "%10sucast: %"PRIu64" packets, ", "",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    atom.string = stat_keys[5];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "%"PRIu64" bytes",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    vty_out(vty, "%s", VTY_NEWLINE);
+
+    atom.string = stat_keys[6];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "%10smcast: %"PRIu64" packets, ", "",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    atom.string = stat_keys[7];
+    index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
+    vty_out(vty, "%"PRIu64" bytes",
+            (index == UINT_MAX)? 0 : datum->values[index].integer);
+    vty_out(vty, "%s", VTY_NEWLINE);
+}
+
+static int
+cli_show_ip_interface_exec(const char *argv[], int argc,
+                           struct vty *vty)
+{
+    const struct ovsrec_interface *ifrow = NULL;
+    const struct ovsrec_interface *if_parent_row = NULL;
+    const struct ovsrec_port *port_row = NULL;
+    const struct ovsdb_datum *datum;
+    struct shash sorted_interfaces;
+    const struct shash_node **nodes;
+    int idx, count, i;
+    int64_t intVal = 0;
+    const char *if_name = NULL;
+    bool internal_if = false;
+    bool isIpv6 = false;
+    if(!strcmp(argv[0], "ipv6"))
+        isIpv6 = true;
+    int64_t key_subintf_parent = 0;
+
+    if(argc > 1 && NULL != argv[1])
+        if_name = argv[1];
+
+    shash_init(&sorted_interfaces);
+
+    OVSREC_INTERFACE_FOR_EACH(ifrow, idl)
+    {
+        shash_add(&sorted_interfaces, ifrow->name, (void *)ifrow);
+    }
+
+    nodes = sort_interface(&sorted_interfaces);
+
+    count = shash_count(&sorted_interfaces);
+
+    for (idx = 0; idx < count; idx++)
+    {
+        ifrow = (const struct ovsrec_interface *)nodes[idx]->data;
+
+        if (if_name && (0 != strcmp(if_name, ifrow->name)))
+            continue;
+
+        if (!check_iface_in_vrf(ifrow->name) || !(port_row = port_find(ifrow->name)))
+        {
+            if(if_name)
+            {
+                vty_out (vty, "Interface %s is not L3.%s", if_name, VTY_NEWLINE);
+                return 0;
+            }
+            continue;
+        }
+        intVal = 0;
+        vty_out(vty, "%s", VTY_NEWLINE);
+        internal_if = (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_INTERNAL) == 0) ? true : false;
+
+        if(strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_VLANSUBINT) == 0)
+        {
+            if (ifrow->n_subintf_parent > 0)
+            {
+                if_parent_row = ifrow->value_subintf_parent[0];
+            }
+
+            if (ifrow->n_subintf_parent > 0)
+            {
+                key_subintf_parent = ifrow->key_subintf_parent[0];
+            }
+
+            show_subinterface_status(ifrow, false, if_parent_row, key_subintf_parent);
+            vty_out (vty, " Hardware: Ethernet, MAC Address: %s %s",
+                    if_parent_row->mac_in_use, VTY_NEWLINE);
+        }
+        else
+        {
+            show_interface_status(vty, ifrow, internal_if, false);
+            vty_out (vty, " Hardware: Ethernet, MAC Address: %s %s",
+                    ifrow->mac_in_use, VTY_NEWLINE);
+        }
+
+        /* Displaying primary and secondary addresses*/
+        if(isIpv6)
+        {
+            if (port_row->ip6_address) {
+                vty_out(vty, " IPv6 address %s%s", port_row->ip6_address,
+                        VTY_NEWLINE);
+            }
+            for (i = 0; i < port_row->n_ip6_address_secondary; i++) {
+                vty_out(vty, " IPv6 address %s secondary%s",
+                        port_row->ip6_address_secondary[i],
+                        VTY_NEWLINE);
+            }
+
+        }
+        else
+        {
+            if (port_row->ip4_address) {
+                vty_out(vty, " IPv4 address %s%s", port_row->ip4_address,
+                        VTY_NEWLINE);
+            }
+            for (i = 0; i < port_row->n_ip4_address_secondary; i++) {
+                vty_out(vty, " IPv4 address %s secondary%s",
+                        port_row->ip4_address_secondary[i],
+                        VTY_NEWLINE);
+            }
+        }
+
+        datum = ovsrec_interface_get_mtu(ifrow, OVSDB_TYPE_INTEGER);
+        if ((NULL!=datum) && (datum->n >0))
+        {
+            intVal = datum->keys[0].integer;
+        }
+
+        if(strcmp(ifrow->type, "system") != 0)
+        {
+            if(if_name && !strcmp(if_name, ifrow->name))
+            {
+                return 0;
+            }
+            continue;
+        }
+
+        vty_out(vty, " MTU %ld %s", intVal, VTY_NEWLINE);
+
+        datum = ovsrec_interface_get_statistics(ifrow,
+                OVSDB_TYPE_STRING, OVSDB_TYPE_INTEGER);
+
+        if (NULL==datum) continue;
+
+        show_ip_stats(vty, isIpv6, datum);
+
+        if (if_name)
+        {
+            break;
+        }
+    }
+
+    return 0;
+}
+
+DEFUN (cli_intf_show_ip_intferface,
+        cli_intf_show_ip_intferface_ifname_cmd,
+        "show (ip|ipv6) interface [IFNAME]",
+        SHOW_STR
+        IP_STR
+        IPV6_STR
+        INTERFACE_STR
+        IFNAME_STR)
+{
+    cli_show_ip_interface_exec(argv, argc, vty);
+    vty_out (vty, "%s", VTY_NEWLINE);
+    return CMD_SUCCESS;
+}
+
 /*******************************************************************
  * @func        : tempd_ovsdb_init
  * @detail      : Add interface related table & columns to ops-cli
@@ -2910,6 +3298,7 @@ void cli_post_init(void)
     /* Show commands */
     install_element (ENABLE_NODE, &cli_intf_show_intferface_ifname_cmd);
     install_element (ENABLE_NODE, &cli_intf_show_intferface_ifname_br_cmd);
+    install_element (ENABLE_NODE, &cli_intf_show_ip_intferface_ifname_cmd);
     install_element (ENABLE_NODE, &cli_intf_show_run_intf_cmd);
     install_element (ENABLE_NODE, &cli_intf_show_run_intf_if_cmd);
     install_element (ENABLE_NODE, &cli_intf_show_run_intf_mgmt_cmd);

@@ -88,19 +88,42 @@ class LACPCliTest(OpsVsiTest):
         assert success == 1,\
             'Test show interface lag 1 command - FAILED!'
 
-        # Verify 'show interface lag' shows correct error
-        info("  ######## Verify show interface lag  ########\n")
-        success = 0
-        out = s1.cmdCLI('do show interface lag')
+        return True
+    def show_running_config_lag_interface(self):
+        info("########## Test show running-config interface lag command ##########\n")
+        s1 = self.net.switches[0]
+
+        s1.cmdCLI('configure terminal')
+        s1.cmdCLI('interface lag 1')
+        s1.cmdCLI('ip address 10.1.1.1/24')
+        s1.cmdCLI('ipv6 address 2001::1/12')
+        s1.cmdCLI('exit')
+        s1.cmdCLI('exit')
+
+        # Get information from show running-config interface
+        out = s1.cmdCLI('show running-config interface')
         lines = out.split('\n')
+        success = 0
         for line in lines:
-            if 'Command incomplete' in line:
+            if 'ip address 10.1.1.1/24' in line:
                 success += 1
-        assert success == 1,\
-            'Test show interface lag command - FAILED!'
+            if 'ipv6 address 2001::1/12' in line:
+                success += 1
+        assert success == 2,\
+            'Test show running-config interface command - FAILED!'
+
+        out = s1.cmdCLI('show running-config interface lag1')
+        lines = out.split('\n')
+        success = 0
+        for line in lines:
+            if 'ip address 10.1.1.1/24' in line:
+                success += 1
+            if 'pv6 address 2001::1/12' in line:
+                success += 1
+        assert success == 2,\
+            'Test show running-config interface <lag_id> - FAILED!'
 
         return True
-
 
 class Test_lacp_cli:
 
@@ -123,6 +146,12 @@ class Test_lacp_cli:
         if self.test.showInterfaceLag():
             info('''
 ########## Test show interface lag command - SUCCESS! ##########
+''')
+
+    def test_showRunningConfigInterfaceLAG(self):
+        if self.test.show_running_config_lag_interface():
+            info('''
+########## Test show running-config interface lag command - SUCCESS! ##########
 ''')
 
     def teardown_class(cls):
