@@ -2252,6 +2252,7 @@ static void
 show_interface_status(struct vty *vty, const const struct ovsrec_interface *ifrow,
         bool internal_if, bool brief)
 {
+    const char *state_value;
     if(brief)
     {
         const struct ovsrec_port *port_row;
@@ -2289,8 +2290,10 @@ show_interface_status(struct vty *vty, const const struct ovsrec_interface *ifro
             }
         }
 
-        if ((NULL != ifrow->admin_state) &&
-                (strcmp(ifrow->admin_state,
+        state_value = smap_get(&ifrow->user_config,
+                               INTERFACE_USER_CONFIG_MAP_ADMIN);
+        if ((NULL != state_value) &&
+                (strcmp(state_value,
                         OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN) == 0))
         {
             if(internal_if)
@@ -2311,8 +2314,10 @@ show_interface_status(struct vty *vty, const const struct ovsrec_interface *ifro
     else
      {
         vty_out (vty, "Interface %s is ", ifrow->name);
-        if ((NULL != ifrow->admin_state)
-                && strcmp(ifrow->admin_state,
+        state_value = smap_get(&ifrow->user_config,
+                               INTERFACE_USER_CONFIG_MAP_ADMIN);
+        if ((NULL != state_value)
+                && strcmp(state_value,
                         OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN) == 0)
         {
             if(internal_if)
