@@ -81,7 +81,7 @@ class adminstateupdateCTTest(OpsVsiTest):
         assert total_lag is 1, \
             "Failed test, all interfaces are not down!"
 
-
+@pytest.mark.skipif(True, reason="Disabling old tests")
 class Test_portd_admin_state_update:
 
     def setup_class(cls):

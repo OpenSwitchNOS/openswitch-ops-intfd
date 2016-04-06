@@ -205,6 +205,7 @@ class adminstateupdateCTTest( OpsVsiTest ):
         assert interface_down_string in output, 'Interface state does not change'
         info('#### All interfaces under the lag go down as soon as lag is delete #####\n')
 
+@pytest.mark.skipif(True, reason="Disabling old tests")
 class Test_portd_admin_state_update:
 
     def setup_class(cls):

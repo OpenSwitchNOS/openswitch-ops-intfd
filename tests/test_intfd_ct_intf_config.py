@@ -987,6 +987,7 @@ class intfdTest(OpsVsiTest):
         sw_clear_user_config(s1, fixed_intf)
 
 
+@pytest.mark.skipif(True, reason="Disabling old tests")
 class Test_intfd:
 
     def setup(self):
