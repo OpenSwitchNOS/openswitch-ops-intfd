@@ -213,11 +213,69 @@
 #define INTFD_AUTONEG_CAPABILITY_OPTIONAL         11
 #define INTFD_AUTONEG_CAPABILITY_REQUIRED         12
 
+/* A protocol object part of some forwarding layer object */
+struct intfd_arbiter_proto_class {
+    /* Name of the protocol */
+    const char *name;
+
+    /* The forwarding layer to which this protocol belongs to */
+    struct intfd_arbiter_layer_class *layer;
+
+    /* Function that runs and determines if the forwarding state
+     * needs to change based on the current protocols state */
+    bool (*run) (struct intfd_arbiter_proto_class *proto,
+                 const struct ovsrec_interface *ifrow,
+                 struct smap *forwarding_state);
+
+    /* Function that returns the protocols view of the forwarding
+     * state of the interface. */
+    bool (*state) (const struct ovsrec_interface *ifrow,
+                   struct smap *forwarding_state);
+
+    /* Next protocol in the forwarding layer */
+    struct intfd_arbiter_proto_class *next;
+};
+
+/* A forwarding layer object */
+struct intfd_arbiter_layer_class {
+    /* The name of the forwarding layer */
+    const char *name;
+
+    /* The protocol that is currently determining the state of the forwarding layer */
+    const char *owner;
+
+    /* A list of protocols operating at this layer */
+    struct intfd_arbiter_proto_class *protos;
+
+    /* Function that determines if the forwarding state of the layer has to change */
+    bool (*run) (struct intfd_arbiter_layer_class *layer,
+                 const struct ovsrec_interface *ifrow,
+                 struct smap *forwarding_state);
+
+    /* Function that returns the current forwarding state of the layer */
+    const char* (*state) (struct intfd_arbiter_layer_class *layer,
+                          struct smap *forwarding_state);
+
+    /* Pointer to the previous forwarding layer in the hierarchy */
+    struct intfd_arbiter_layer_class *prev;
+
+    /* Pointer to the next forwarding layer in the hierarchy */
+    struct intfd_arbiter_layer_class *next;
+};
+
+/* An interface arbiter object */
+struct intfd_arbiter_class {
+    /* A list of forwarding layers applicable for this object */
+    struct intfd_arbiter_layer_class *layers;
+};
+
 extern void intfd_ovsdb_init(const char *db_path);
 extern void intfd_ovsdb_exit(void);
 extern void intfd_run(void);
 extern void intfd_wait(void);
 extern void intfd_debug_dump(struct ds *ds, int argc, const char *argv[]);
-
+extern void intfd_arbiter_init(void);
+extern void intfd_arbiter_interface_run(const struct ovsrec_interface *ifrow,
+        struct smap *forwarding_state);
 #endif /* __INTFD_H__ */
 /** @} end of group ops-intfd */

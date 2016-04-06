@@ -400,6 +400,9 @@ intfd_ovsdb_init(const char *db_path)
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_hw_intf_config);
     ovsdb_idl_omit_alert(idl, &ovsrec_interface_col_hw_intf_config);
 
+    ovsdb_idl_add_column(idl, &ovsrec_interface_col_forwarding_state);
+    ovsdb_idl_omit_alert(idl, &ovsrec_interface_col_forwarding_state);
+
     ovsdb_idl_add_column(idl, &ovsrec_port_col_admin);
     ovsdb_idl_add_column(idl, &ovsrec_port_col_interfaces);
     ovsdb_idl_add_column(idl, &ovsrec_port_col_name);
@@ -1928,6 +1931,30 @@ end:
 } /* intfd_reconfigure */
 
 static int
+intfd_arbiter_run(void)
+{
+    int rc = 1;
+    const struct ovsrec_interface *ifrow = NULL;
+    struct smap forwarding_state;
+
+    /* Walk through all the interfaces and update the forwarding states
+     * for each layer and the final forwarding state. */
+    OVSREC_INTERFACE_FOR_EACH(ifrow, idl) {
+        smap_clone(&forwarding_state, &ifrow->forwarding_state);
+
+        intfd_arbiter_interface_run(ifrow, &forwarding_state);
+
+        if (!smap_equal(&forwarding_state, &ifrow->forwarding_state)) {
+            ovsrec_interface_set_forwarding_state(ifrow, &forwarding_state);
+        }
+
+        smap_destroy(&forwarding_state);
+    }
+
+    return rc;
+}
+
+static int
 intfd_reconfigure(void)
 {
     int rc = 0;
@@ -2003,6 +2030,9 @@ intfd_reconfigure(void)
 
     /* Process interface config changes. */
     rc |= handle_interfaces_config_mods(&sh_idl_interfaces);
+
+    /* Determine the new 'forwarding state' for each interface */
+    intfd_arbiter_run();
 
     /* Update idl_seqno after handling all OVSDB updates. */
     idl_seqno = new_idl_seqno;
