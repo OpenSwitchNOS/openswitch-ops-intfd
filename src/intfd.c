@@ -110,6 +110,9 @@ intfd_init(const char *db_path)
         VLOG_ERR("Event log initialization failed for interface");
     }
 
+    /* Initialize the interface arbiter */
+    intfd_arbiter_init();
+
     /* Register ovs-appctl commands for this daemon. */
     unixctl_command_register("ops-intfd/dump", "", 0, 1, intfd_unixctl_dump, NULL);
 } /* intfd_init */

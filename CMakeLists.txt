@@ -35,7 +35,8 @@ include_directories (${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR}/${INCL_DIR}
 
 
 # Source files to build ops-intfd
-set (SOURCES ${SRC_DIR}/intfd.c ${SRC_DIR}/intfd_ovsdb_if.c ${SRC_DIR}/intfd_utils.c)
+set (SOURCES ${SRC_DIR}/intfd.c ${SRC_DIR}/intfd_ovsdb_if.c ${SRC_DIR}/intfd_utils.c
+     ${SRC_DIR}/intfd_arbiter.c)
 
 # Rules to build ops-intfd
 add_executable (${INTFD} ${SOURCES})
