@@ -2399,6 +2399,9 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
     bool internal_if = false;
     bool isLag = true;
     const struct ovsdb_datum *datum;
+    const char *cur_duplex = NULL;
+    const char *cur_mtu = NULL;
+    const char *cur_flow_control = NULL;
     static char *interface_statistics_keys [] = {
         "rx_packets",
         "rx_bytes",
@@ -2474,7 +2477,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
             intVal = 0;
             datum = ovsrec_interface_get_link_speed(ifrow, OVSDB_TYPE_INTEGER);
-            if ((NULL!=datum) && (datum->n >0))
+            if ((NULL != datum) && (datum->n >0))
             {
                 intVal = datum->keys[0].integer;
             }
@@ -2518,27 +2521,30 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
             if(!internal_if)
             {
 
-                datum = ovsrec_interface_get_mtu(ifrow, OVSDB_TYPE_INTEGER);
-                if ((NULL!=datum) && (datum->n >0))
+                cur_mtu = smap_get(&ifrow->user_config,
+                                      INTERFACE_USER_CONFIG_MAP_MTU);
+                if (NULL != cur_mtu)
                 {
-                    intVal = datum->keys[0].integer;
+                    intVal = atoi(cur_mtu);
                 }
 
                 vty_out(vty, " MTU %ld %s", intVal, VTY_NEWLINE);
 
-                if ((NULL != ifrow->duplex) &&
-                        (strcmp(ifrow->duplex, "half") == 0))
+                cur_duplex = smap_get(&ifrow->user_config,
+                                      INTERFACE_USER_CONFIG_MAP_DUPLEX);
+                if ((NULL == cur_duplex) ||
+                        !strcmp(cur_duplex, "full"))
                 {
-                    vty_out(vty, " Half-duplex %s", VTY_NEWLINE);
+                    vty_out(vty, " Full-duplex %s", VTY_NEWLINE);
                 }
                 else
                 {
-                    vty_out(vty, " Full-duplex %s", VTY_NEWLINE);
+                    vty_out(vty, " Half-duplex %s", VTY_NEWLINE);
                 }
 
                 intVal = 0;
                 datum = ovsrec_interface_get_link_speed(ifrow, OVSDB_TYPE_INTEGER);
-                if ((NULL!=datum) && (datum->n >0))
+                if ((NULL != datum) && (datum->n >0))
                 {
                     intVal = datum->keys[0].integer;
                 }
@@ -2557,23 +2563,24 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
                         VTY_NEWLINE);
                 }
 
-                cur_state = ifrow->pause;
-                if (NULL != cur_state)
+                cur_flow_control = smap_get(&ifrow->user_config,
+                                      INTERFACE_USER_CONFIG_MAP_PAUSE);
+                if (NULL != cur_flow_control)
                 {
-                    if (strcmp(cur_state,
+                    if (strcmp(cur_flow_control,
                         INTERFACE_USER_CONFIG_MAP_PAUSE_NONE) == 0)
 
                     {
                         vty_out(vty, " Input flow-control is off, "
                             "output flow-control is off%s",VTY_NEWLINE);
                     }
-                    else if (strcmp(cur_state,
+                    else if (strcmp(cur_flow_control,
                         INTERFACE_USER_CONFIG_MAP_PAUSE_RX) == 0)
                     {
                         vty_out(vty, " Input flow-control is on, "
                             "output flow-control is off%s",VTY_NEWLINE);
                     }
-                    else if (strcmp(cur_state,
+                    else if (strcmp(cur_flow_control,
                         INTERFACE_USER_CONFIG_MAP_PAUSE_TX) == 0)
                     {
                         vty_out(vty, " Input flow-control is off, "
