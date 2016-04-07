@@ -2398,7 +2398,6 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
     const struct ovsrec_port *port_row;
     bool internal_if = false;
     bool isLag = true;
-    const struct ovsdb_datum *datum;
     static char *interface_statistics_keys [] = {
         "rx_packets",
         "rx_bytes",
@@ -2473,10 +2472,11 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
             show_interface_status(vty, ifrow, internal_if, brief);
 
             intVal = 0;
-            datum = ovsrec_interface_get_link_speed(ifrow, OVSDB_TYPE_INTEGER);
-            if ((NULL!=datum) && (datum->n >0))
+            cur_state = smap_get(&ifrow->user_config,
+                                      INTERFACE_USER_CONFIG_MAP_SPEEDS);
+            if ((NULL!=cur_state))
             {
-                intVal = datum->keys[0].integer;
+                intVal = atoi (cur_state);
             }
 
             if(intVal == 0)
@@ -2485,7 +2485,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
             }
             else
             {
-                vty_out(vty, " %-6ld", intVal/1000000);
+                vty_out(vty, " %-6ld", intVal);
             }
             vty_out(vty, "  -- ");  /* Port channel */
             vty_out (vty, "%s", VTY_NEWLINE);
@@ -2518,31 +2518,35 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
             if(!internal_if)
             {
 
-                datum = ovsrec_interface_get_mtu(ifrow, OVSDB_TYPE_INTEGER);
-                if ((NULL!=datum) && (datum->n >0))
+                cur_state = smap_get(&ifrow->user_config,
+                                      INTERFACE_USER_CONFIG_MAP_MTU);
+                if (NULL!=cur_state)
                 {
-                    intVal = datum->keys[0].integer;
+                    intVal = atoi (cur_state);
                 }
 
                 vty_out(vty, " MTU %ld %s", intVal, VTY_NEWLINE);
 
-                if ((NULL != ifrow->duplex) &&
-                        (strcmp(ifrow->duplex, "half") == 0))
-                {
-                    vty_out(vty, " Half-duplex %s", VTY_NEWLINE);
-                }
-                else
+                cur_state = smap_get(&ifrow->user_config,
+                                      INTERFACE_USER_CONFIG_MAP_DUPLEX);
+                if ((NULL == cur_state) ||
+                        !strcmp(cur_state, "full"))
                 {
                     vty_out(vty, " Full-duplex %s", VTY_NEWLINE);
                 }
+                else
+                {
+                    vty_out(vty, " Half-duplex %s", VTY_NEWLINE);
+                }
 
                 intVal = 0;
-                datum = ovsrec_interface_get_link_speed(ifrow, OVSDB_TYPE_INTEGER);
-                if ((NULL!=datum) && (datum->n >0))
+                cur_state = smap_get(&ifrow->user_config,
+                                      INTERFACE_USER_CONFIG_MAP_SPEEDS);
+                if ((NULL!=cur_state))
                 {
-                    intVal = datum->keys[0].integer;
+                    intVal = atoi (cur_state);
                 }
-                vty_out(vty, " Speed %ld Mb/s %s",intVal/1000000 , VTY_NEWLINE);
+                vty_out(vty, " Speed %ld Mb/s %s", intVal, VTY_NEWLINE);
 
                 cur_state = smap_get(&ifrow->user_config,
                                        INTERFACE_USER_CONFIG_MAP_AUTONEG);
@@ -2557,7 +2561,8 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
                         VTY_NEWLINE);
                 }
 
-                cur_state = ifrow->pause;
+                cur_state = smap_get(&ifrow->user_config,
+                                      INTERFACE_USER_CONFIG_MAP_PAUSE);
                 if (NULL != cur_state)
                 {
                     if (strcmp(cur_state,
