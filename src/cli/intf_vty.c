@@ -2879,6 +2879,11 @@ cli_show_ip_interface_exec(const char *argv[], int argc,
             vty_out (vty, " Hardware: Ethernet, MAC Address: %s %s",
                     if_parent_row->mac_in_use, VTY_NEWLINE);
         }
+        else if(strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_LOOPBACK) == 0)
+        {
+            show_interface_status(vty, ifrow, true, false);
+            vty_out (vty, " Hardware: Loopback %s", VTY_NEWLINE);
+        }
         else
         {
             show_interface_status(vty, ifrow, internal_if, false);
