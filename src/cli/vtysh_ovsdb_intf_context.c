@@ -77,7 +77,7 @@ intfd_get_user_cfg_adminstate(const struct smap *ifrow_config,
 |                                                 for the specific child
 | Return : bool : returns true/false
 -----------------------------------------------------------------------------*/
-static bool
+bool
 is_parent_interface_split(const struct ovsrec_interface *parent_iface)
 {
     const char *lanes_split_value = NULL;
