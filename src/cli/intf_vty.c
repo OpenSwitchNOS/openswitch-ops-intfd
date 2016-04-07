@@ -918,12 +918,9 @@ DEFUN (cli_intf_split,
                   (strcmp(split_value,
                           INTERFACE_HW_INTF_INFO_MAP_SPLIT_4_TRUE) != 0))
             {
-              if ((vty_flags & CMD_FLAG_NO_CMD) == 0)
-                {
-                  vty_out(vty, "Warning: split operation only applies to"
-                          " QSFP interfaces with split capability%s",
-                          VTY_NEWLINE);
-                }
+               vty_out(vty, "Warning: split operation only applies to"
+                       " QSFP interfaces with split capability%s",
+                       VTY_NEWLINE);
             }
           if (vty_flags & CMD_FLAG_NO_CMD)
             {
@@ -2576,7 +2573,27 @@ DEFUN (vtysh_interface,
     static char ifnumber[MAX_IFNAME_LENGTH];
     const struct ovsrec_interface *if_row = NULL;
     uint16_t flag = 1;
+    unsigned int parent_if_number;
+    unsigned int split_child_id;
 
+    /* check if a split child interface can be configured */
+    if (strchr(argv[0], '-')) {
+        sscanf (argv[0],"%u-%u",&parent_if_number, &split_child_id);
+
+        char if_name_str[5];
+        sprintf(if_name_str, "%u", parent_if_number);
+
+        OVSREC_INTERFACE_FOR_EACH (if_row, idl) {
+           if (!strcmp (if_row->name, if_name_str)) {
+                if (!is_parent_interface_split (if_row)) {
+                     vty_out (vty, "Configuration not allowed as parent "
+                              "interface of %s is not split.%s",
+                              argv[0],VTY_NEWLINE);
+                     return CMD_ERR_NOTHING_TODO;
+                }
+           }
+        }
+    }
     if (strchr(argv[0], '.'))
     {
         return create_sub_interface(argv[0]);
