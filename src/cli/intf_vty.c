@@ -2437,6 +2437,33 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
     OVSREC_INTERFACE_FOR_EACH(ifrow, idl)
     {
+        const char *state_value;
+        if(!ifrow->split_parent)
+        {   /*Parent (orphan) interface */
+            state_value = smap_get(&ifrow->user_config,
+                                   INTERFACE_USER_CONFIG_MAP_LANE_SPLIT);
+            if(state_value
+                   &&  !strcmp(state_value,
+                          INTERFACE_USER_CONFIG_MAP_LANE_SPLIT_SPLIT))
+            {
+                VLOG_DBG("Skipped parent int %s, split_config= %s", ifrow->name, state_value);
+                continue;
+            }
+        }
+        else
+        {   /*Child interface */
+            /*Check if the parent was split */
+            state_value = smap_get(&ifrow->split_parent->user_config,
+                                      INTERFACE_USER_CONFIG_MAP_LANE_SPLIT);
+            if(!state_value
+                  || strcmp(state_value,
+                                     INTERFACE_USER_CONFIG_MAP_LANE_SPLIT_SPLIT))
+            {
+                VLOG_ERR("Skipped child int %s, split_config of parent= %s", ifrow->name, state_value);
+                continue;
+            }
+        }
+
         if ((NULL != argv[0]) && (0 != strcmp(argv[0],ifrow->name)))
         {
             continue;
