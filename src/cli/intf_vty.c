@@ -421,10 +421,22 @@ DEFUN_DYN_HELPSTR (cli_intf_mtu,
         "\n\ndyncb_helpstr_mtu\n")
 {
     const struct ovsrec_interface * row = NULL;
-    struct ovsdb_idl_txn* status_txn = cli_do_config_start();
     enum ovsdb_idl_txn_status status;
     struct smap smap_user_config;
+    struct ovsdb_idl_txn* status_txn;
+    long mtu;
+    char *endptr;
 
+    /* Validate that MTU is in the range 576-9216 */
+    if (!(vty_flags & CMD_FLAG_NO_CMD)) {
+        mtu = strtol(argv[0], &endptr, 10);
+        if((*endptr != '\0') || (mtu < 576 || mtu > 9216)) {
+           vty_out(vty, "Invalid MTU value%s", VTY_NEWLINE);
+           return CMD_ERR_NOTHING_TODO;
+        }
+    }
+
+    status_txn = cli_do_config_start();
     if (status_txn == NULL)
     {
         VLOG_ERR(OVSDB_TXN_CREATE_ERROR);
