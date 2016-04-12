@@ -2105,6 +2105,8 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
     const char *aggregate_mode = NULL;
     const struct ovsdb_datum *datum;
     unsigned int index;
+    const char* ipv4_address = NULL;
+    const char* ipv6_address = NULL;
 
     int64_t lag_speed = 0;
 
@@ -2176,6 +2178,14 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
         aggregate_mode = lag_port->lacp;
         if(aggregate_mode)
             vty_out(vty, " Aggregate mode : %s %s", aggregate_mode, VTY_NEWLINE);
+        ipv4_address = lag_port->ip4_address;
+        if (ipv4_address){
+            vty_out(vty, " IPv4 address %s %s", ipv4_address, VTY_NEWLINE);
+        }
+        ipv6_address = lag_port->ip6_address;
+        if (ipv6_address){
+            vty_out(vty, " IPv6 address %s %s", ipv6_address, VTY_NEWLINE);
+        }
         vty_out(vty, " Speed %ld Mb/s %s",lag_speed/1000000 , VTY_NEWLINE);
         vty_out(vty, " RX%s", VTY_NEWLINE);
         vty_out(vty, "   %10d input packets  ", lag_statistics[0]);
