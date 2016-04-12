@@ -24,7 +24,7 @@
 #ifndef _INTF_VTY_H
 #define _INTF_VTY_H
 
-#define INTERFACE_USER_CONFIG_MAP_MTU_DEFAULT                   "auto"
+#define INTERFACE_USER_CONFIG_MAP_MTU_DEFAULT                   "1500"
 #define INTERFACE_USER_CONFIG_MAP_PAUSE_DEFAULT                 "none"
 #define INTERFACE_USER_CONFIG_MAP_DUPLEX_DEFAULT                "full"
 #define INTERFACE_USER_CONFIG_MAP_SPEEDS_DEFAULT                "auto"

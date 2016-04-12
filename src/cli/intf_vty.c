@@ -412,13 +412,11 @@ dyncb_helpstr_mtu(struct cmd_token *token, struct vty *vty, \
 
 /*
  * CLI "mtu"
- * default : auto
  */
 DEFUN_DYN_HELPSTR (cli_intf_mtu,
         cli_intf_mtu_cmd,
-        "mtu (auto|WORD)",
+        "mtu WORD",
         "Configure MTU for the interface\n"
-        "Set MTU to system default (Default)\n"
         "Enter MTU (in bytes) in the range <576-9216>\n",
         "\n\ndyncb_helpstr_mtu\n")
 {
@@ -2520,12 +2518,13 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
             if(!internal_if)
             {
-
                 cur_mtu = smap_get(&ifrow->user_config,
                                       INTERFACE_USER_CONFIG_MAP_MTU);
-                if (NULL != cur_mtu)
-                {
+                if (NULL != cur_mtu) {
                     intVal = atoi(cur_mtu);
+                }
+                else {
+                    intVal = atoi(INTERFACE_USER_CONFIG_MAP_MTU_DEFAULT);
                 }
 
                 vty_out(vty, " MTU %ld %s", intVal, VTY_NEWLINE);
