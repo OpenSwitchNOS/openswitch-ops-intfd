@@ -67,53 +67,162 @@ static struct cmd_node interface_node =
       "%s(config-if)# ",
    };
 
-/* qsort comparator function.
- * This may need to be modified depending on the format of interface name
- * Currently interface name format is[interface_number-split interface_number]
- */
-int
-compare_nodes_by_interface_in_numerical(const void *a_, const void *b_)
+/* Extract the interface type from interface name */
+static char *
+extract_intf_type (const char *intf_name)
 {
-    const struct shash_node *const *a = a_;
-    const struct shash_node *const *b = b_;
-    uint i1=0,i2=0,i3=0,i4=0;
+    const char *p = intf_name;
+    int count = 0;
 
-    if(strstr(((*a)->name), "vlan") != NULL &&
-       strstr(((*b)->name), "vlan") != NULL)
-    {
-        sscanf((*a)->name, "vlan%d", &i1);
-        sscanf((*b)->name, "vlan%d", &i3);
+    while (*p) {
+        if (isdigit (*p)) {
+            break;
+        }
+        else {
+            p ++;
+            count ++;
+        }
     }
+    char *intf_type = (char *) malloc(sizeof (char) * (count + 1));
+    strncpy (intf_type, intf_name, count);
+    intf_type[count] = '\0';
 
-    else if(strstr(((*a)->name), "vlan") != NULL)
-    {
-        return -1;
-    }
+    return intf_type;
+}
 
-    else if(strstr(((*b)->name), "vlan") != NULL)
-    {
-         return 1;
-    }
+/* Extract the interface id from the interface-name */
+static unsigned long
+extract_tag_from_intf_name (const char *intf_name)
+{
+    unsigned long val = 0;
+    const char *p = intf_name;
+    while (*p) {
+        if (isdigit(*p)) {
+             val = val*10 + (*p-'0');
+        }
+        p++;
+   }
+   return val;
+}
 
-    else
-    {
-        sscanf((*a)->name, "%d-%d", &i1,&i2);
-        sscanf((*b)->name, "%d-%d", &i3,&i4);
-    }
+static int
+compare_both_proper_intf_names (const char *name_intf1, const char *name_intf2)
+{
+    char *type_intf1 = extract_intf_type (name_intf1);
+    char *type_intf2 = extract_intf_type (name_intf2);
 
-    if(i1 == i3)
+    int str_comparison_result = strcmp (type_intf1, type_intf2);
+    free(type_intf1);
+    free(type_intf2);
+    if (str_comparison_result == 0)
     {
-        if(i2 == i4)
+        unsigned long tag_intf1 = extract_tag_from_intf_name (name_intf1);
+        unsigned long tag_intf2 = extract_tag_from_intf_name (name_intf2);
+
+        if (tag_intf1 == tag_intf2)
             return 0;
-        else if(i2 < i4)
+        else if (tag_intf1 < tag_intf2)
             return -1;
         else
             return 1;
-    }
-    else if (i1 < i3)
+     }
+     else if (str_comparison_result < 0) {
         return -1;
-    else
+     }
+     else {
         return 1;
+     }
+}
+
+static int
+compare_both_intf_numbers (const char *name_intf1, const char *name_intf2)
+{
+     uint id_intf1 = 0, id_intf2 = 0;
+     uint ext_id_intf1 = 0, ext_id_intf2 = 0;
+     unsigned long tag_sub_intf1 = 0, tag_sub_intf2 = 0;
+
+     /* To  handle cases like 10, 54-2, 52-1.1 etc. */
+     sscanf(name_intf1, "%d-%d.%lu", &id_intf1, &ext_id_intf1, &tag_sub_intf1);
+     sscanf(name_intf2, "%d-%d.%lu", &id_intf2, &ext_id_intf2, &tag_sub_intf2);
+
+     /* To handle cases like 10.1, 54.2 etc. */
+     if (strchr (name_intf1, '.') && !strchr (name_intf1, '-')) {
+         sscanf(name_intf1, "%d.%lu", &id_intf1, &tag_sub_intf1);
+     }
+
+     if (strchr (name_intf2, '.') && !strchr (name_intf2, '-')) {
+         sscanf(name_intf2, "%d.%lu", &id_intf2, &tag_sub_intf2);
+     }
+
+     if(id_intf1 == id_intf2)
+     {
+        if(ext_id_intf1 == ext_id_intf2)
+        {
+           /* For proper positioning of subinterfaces */
+           if (tag_sub_intf1 == tag_sub_intf2)
+               return 0;
+           else if (tag_sub_intf1 < tag_sub_intf2)
+               return -1;
+           else
+               return 1;
+        }
+        else if(ext_id_intf1 < ext_id_intf2)
+           return -1;
+        else
+           return 1;
+     }
+     else if (id_intf1 < id_intf2)
+           return -1;
+     else
+           return 1;
+}
+
+static int
+compare_only_one_proper_intf_name (const char *name1, const char *name2)
+{
+     if (isdigit(*name1))
+	 return -1;
+     else
+         return 1;
+}
+
+/* qsort comparator function.
+ * Case 1: When both interface name consists of numbers only
+ *         Example: 10 and 12-1 etc.
+ * Case 2: When one interface name consists of numbers and other is proper name
+ *         Example: 10 and vlan20 etc.
+ * Case 3: When both interface names are proper names with interface type and id
+ *         Example: vlan20 and lo23 etc.
+ */
+int
+compare_nodes_by_interface_name_and_tag (const void *a_, const void *b_)
+{
+    const struct shash_node *const *a = a_;
+    const struct shash_node *const *b = b_;
+    char *name_intf1 = (*a)->name;
+    char *name_intf2 = (*b)->name;
+
+    /* bridge_normal has to be at the top */
+    if (!strcmp (name_intf1, "bridge_normal"))
+        return -1;
+    else if (!strcmp (name_intf2, "bridge_normal"))
+        return 1;
+
+    /* Case 1 */
+    if (isdigit(*name_intf1) && isdigit(*name_intf2))
+    {
+         return compare_both_intf_numbers (name_intf1, name_intf2);
+    }
+    /* Case 2 */
+    else if (isdigit(*name_intf1) || isdigit(*name_intf2))
+    {
+        return compare_only_one_proper_intf_name (name_intf1, name_intf2);
+    }
+    /* Case 3 */
+    else
+    {
+        return compare_both_proper_intf_names (name_intf1, name_intf2);
+    }
 
     return 0;
 }
@@ -123,7 +232,7 @@ compare_nodes_by_interface_in_numerical(const void *a_, const void *b_)
  * on success, returns sorted interface list.
  */
 const struct shash_node **
-sort_interface(const struct shash *sh)
+sort_all_interfaces(const struct shash *sh)
 {
     if (shash_is_empty(sh)) {
         return NULL;
@@ -141,7 +250,7 @@ sort_interface(const struct shash *sh)
         }
         ovs_assert(i == n);
 
-        qsort(nodes, n, sizeof *nodes, compare_nodes_by_interface_in_numerical);
+        qsort(nodes, n, sizeof *nodes, compare_nodes_by_interface_name_and_tag);
         return nodes;
     }
 }
@@ -1542,12 +1651,27 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
     const struct ovsrec_udp_bcast_forwarder_server *udp_row_serv = NULL;
     const struct ovsdb_datum *datum = NULL;
     const char *cur_state =NULL;
+    struct shash sorted_interfaces;
     bool bPrinted = false;
     size_t i = 0;
     int udp_dport = 0;
     char *buff = NULL, *serverip = NULL;
+    const struct shash_node **nodes;
+    int idx, count;
+
+    shash_init(&sorted_interfaces);
 
     OVSREC_INTERFACE_FOR_EACH(row, idl) {
+       shash_add(&sorted_interfaces, row->name, (void *)row);
+    }
+
+    nodes = sort_all_interfaces(&sorted_interfaces);
+    count = shash_count(&sorted_interfaces);
+
+    for (idx = 0; idx < count; idx++) {
+
+        row = (const struct ovsrec_interface *)nodes[idx]->data;
+
         if (0 != argc) {
             if ((NULL != argv[0]) && (0 != strcmp(argv[0], row->name))) {
                 continue;
@@ -1727,6 +1851,9 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
         }
     }
 
+    shash_destroy(&sorted_interfaces);
+    free(nodes);
+
     parse_lag(vty, argc, argv);
 
     return CMD_SUCCESS;
@@ -1869,7 +1996,7 @@ int cli_show_xvr_exec (struct cmd_element *self, struct vty *vty,
         shash_add(&sorted_interfaces, ifrow->name, (void *)ifrow);
     }
 
-    nodes = sort_interface(&sorted_interfaces);
+    nodes = sort_all_interfaces(&sorted_interfaces);
 
     count = shash_count(&sorted_interfaces);
 
@@ -2753,7 +2880,7 @@ cli_show_interface_queue_stats (struct cmd_element *self, struct vty *vty,
         shash_add(&sorted_interfaces, ifrow->name, (void *)ifrow);
     }
 
-    nodes = sort_interface(&sorted_interfaces);
+    nodes = sort_all_interfaces(&sorted_interfaces);
 
     count = shash_count(&sorted_interfaces);
 
@@ -2958,7 +3085,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
     display_header(brief);
 
-    nodes = sort_interface(&sorted_interfaces);
+    nodes = sort_all_interfaces(&sorted_interfaces);
     count = shash_count(&sorted_interfaces);
 
     for (idx = 0; idx < count; idx++)
@@ -3749,7 +3876,7 @@ cli_show_ip_interface_exec(const char *argv[], int argc,
         shash_add(&sorted_interfaces, ifrow->name, (void *)ifrow);
     }
 
-    nodes = sort_interface(&sorted_interfaces);
+    nodes = sort_all_interfaces(&sorted_interfaces);
 
     count = shash_count(&sorted_interfaces);
 
