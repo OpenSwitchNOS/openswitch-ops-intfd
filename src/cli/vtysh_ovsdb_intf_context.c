@@ -120,7 +120,7 @@ vtysh_intf_context_init(void *p_private)
        shash_add(&sorted_interfaces, ifrow->name, (void *)ifrow);
    }
 
-   nodes = sort_interface(&sorted_interfaces);
+   nodes = sort_all_interfaces(&sorted_interfaces);
    count = shash_count(&sorted_interfaces);
    sorted_list = (struct feature_sorted_list *)
                  malloc (sizeof(struct feature_sorted_list));
