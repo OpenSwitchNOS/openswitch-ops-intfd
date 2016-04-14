@@ -21,6 +21,7 @@ OpenSwitch Test for interface related configurations.
 
 # from pytest import mark
 from time import sleep
+import re
 
 TOPOLOGY = """
 # +-------+
@@ -56,6 +57,65 @@ def sw_set_intf_pm_info(dut, int, conf):
     for s in conf:
         c += " pm_info:{s}".format(s=s)
     return dut(c, shell="vsctl")
+
+
+'''
+sort in alphanumeric order
+'''
+def alphanumeric_sort(l):
+    convert = lambda text: int(text) if text.isdigit() else text
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
+    return sorted(l, key = alphanum_key)
+
+
+'''
+create or enable some physical and logical interfaces
+'''
+def create_enable_interfaces(sw):
+
+    sw("configure terminal")
+
+    ''' create some loopback interfaces '''
+    sw("interface loopback 44")
+    sw("no shutdown")
+    sw("interface loopback 4")
+    sw("no shutdown")
+    sw("interface loopback 77")
+    sw("no shutdown")
+    sw("interface loopback 12")
+    sw("no shutdown")
+
+    ''' create some vlan interfaces '''
+    sw("interface vlan 22")
+    sw("no shutdown")
+    sw("interface vlan 4")
+    sw("no shutdown")
+    sw("interface vlan 2")
+    sw("no shutdown")
+    sw("interface vlan 44")
+    sw("no shutdown")
+
+    ''' create some sub-interfaces '''
+    sw("interface 10.33")
+    sw("no shutdown")
+    sw("interface 4.4")
+    sw("no shutdown")
+    sw("interface 4.44")
+    sw("no shutdown")
+    sw("interface 50-1.5")
+    sw("no shutdown")
+
+    ''' enable some physical interfaces '''
+    sw("interface 10")
+    sw("no shutdown")
+    sw("interface 4")
+    sw("no shutdown")
+    sw("interface 50-4")
+    sw("no shutdown")
+    sw("interface 50-1")
+    sw("no shutdown")
+
+    sw("end")
 
 
 def sw_get_intf_state(dut, int, fields):
@@ -250,6 +310,7 @@ def test_user_configuration(topology, step):
     short_sleep()
 
     step("Step 24- Display error message for show interface <parent-intf> when parent-intf is split")
+    # please don't clean this interface, this is being used in Step 25
     ops1("configure terminal")
     ops1("interface 50")
     ops1._shells['vtysh']._prompt = (
@@ -261,5 +322,23 @@ def test_user_configuration(topology, step):
     )
     ops1('y')
     out = ops1('do show interface 50')
+    ops1("end")
     assert "Interface 50 is split" in out
     short_sleep()
+
+    step("Step 25- Verify show running-config and show running-config interface output is in alphanumeric sorted manner")
+
+    create_enable_interfaces(ops1)
+
+    step("Collecting output of show running-config")
+    out = ops1("show running-config")
+    lines = out.split('\n')
+    interfaces = [line for line in lines if "interface" in line]
+    assert interfaces == alphanumeric_sort(interfaces)
+
+    step("Collecting output of show running-config interface")
+    out = ops1("show running-config interface")
+    lines = out.split('\n')
+    interfaces = [line for line in lines if "interface" in line]
+    assert 'bridge_normal' in interfaces.pop(0) and \
+           interfaces == alphanumeric_sort(interfaces)
