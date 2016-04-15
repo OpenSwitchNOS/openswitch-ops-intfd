@@ -2225,7 +2225,7 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
 
     // Array to keep the statistics for each lag while adding the
     // stats for each interface in the lag.
-    int lag_statistics [12] = {0};
+    unsigned int lag_statistics [12] = {0};
 
     // Aggregation-key variables
     size_t aggr_key_len = 6;
