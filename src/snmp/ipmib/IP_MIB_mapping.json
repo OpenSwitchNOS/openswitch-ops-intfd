@@ -1,0 +1,759 @@
+{
+    "ipIfStatsTable" : {
+        "MibType" : "Table",
+        "RootOvsTable": "port",
+        "CacheTimeout": 30,
+        "SkipFunction": "portTable_skip_function",
+        "Indexes":{
+            "ipIfStatsIPVersion": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction":"portTableIPVersion_custom_function"
+            },
+            "ipIfStatsIfIndex": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction":"portTableifIndex_custom_function"
+            }
+        },
+        "Columns" : {
+            "ipIfStatsInReceives": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsInReceives_custom_function"
+            },
+            "ipIfStatsHCInReceives": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsHCInReceives_custom_function"
+            },
+            "ipIfStatsInOctets": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsInOctets_custom_function"
+            },
+            "ipIfStatsHCInOctets": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsHCInOctets_custom_function"
+            },
+            "ipIfStatsInHdrErrors": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsInNoRoutes": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsInAddrErrors": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsInUnknownProtos": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsInTruncatedPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsInForwDatagrams": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsHCInForwDatagrams": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsReasmReqds": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsReasmOKs": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsReasmFails": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsInDiscards": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsInDelivers": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsHCInDelivers": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsOutRequests": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsHCOutRequests": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsOutForwDatagrams": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsHCOutForwDatagrams": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsOutDiscards": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsOutFragReqds": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsOutFragOKs": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsOutFragFails": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsOutFragCreates": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsOutTransmits": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsOutTransmits_custom_function"
+            },
+            "ipIfStatsHCOutTransmits": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsHCOutTransmits_custom_function"
+            },
+            "ipIfStatsOutOctets": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsOutOctets_custom_function"
+            },
+            "ipIfStatsHCOutOctets": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsHCOutOctets_custom_function"
+            },
+            "ipIfStatsInMcastPkts": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsInMcastPkts_custom_function"
+            },
+            "ipIfStatsHCInMcastPkts": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsHCInMcastPkts_custom_function"
+            },
+            "ipIfStatsInMcastOctets": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsInMcastOctets_custom_function"
+            },
+            "ipIfStatsHCInMcastOctets": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsHCInMcastOctets_custom_function"
+            },
+            "ipIfStatsOutMcastPkts": {
+                "OvsTable": "port",
+				"OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsOutMcastPkts_custom_function"
+            },
+            "ipIfStatsHCOutMcastPkts": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsHCOutMcastPkts_custom_function"
+            },
+            "ipIfStatsOutMcastOctets": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsOutMcastOctets_custom_function"
+            },
+            "ipIfStatsHCOutMcastOctets": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": "ipIfStatsHCOutMcastOctets_custom_function"
+            },
+            "ipIfStatsInBcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsHCInBcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsOutBcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsHCOutBcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsDiscontinuityTime": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipIfStatsRefreshRate": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            }
+        }
+    },
+
+    "ipSystemStatsTable" : {
+        "MibType" : "Table",
+        "RootOvsTable": "port",
+        "CacheTimeout": 30,
+        "SkipFunction": "portTable_skip_function",
+        "Indexes":{
+            "ipSystemStatsIPVersion": {
+                "OvsTable": "port",
+                "OvsColumn": "name",
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction":null
+            }
+        },
+        "Columns" : {
+            "ipSystemStatsInReceives": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+				"CustomFunction": null
+            },
+            "ipSystemStatsHCInReceives": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInOctets": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCInOctets": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInHdrErrors": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInNoRoutes": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInAddrErrors": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInUnknownProtos": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInTruncatedPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInForwDatagrams": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCInForwDatagrams": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsReasmReqds": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsReasmOKs": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsReasmFails": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInDiscards": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInDelivers": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCInDelivers": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutRequests": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCOutRequests": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutNoRoutes": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutForwDatagrams": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCOutForwDatagrams": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutDiscards": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutFragReqds": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutFragOKs": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutFragFails": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutFragCreates": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutTransmits": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCOutTransmits": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutOctets": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCOutOctets": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInMcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCInMcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInMcastOctets": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCInMcastOctets": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutMcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCOutMcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutMcastOctets": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCOutMcastOctets": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsInBcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCInBcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsOutBcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsHCOutBcastPkts": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsDiscontinuityTime": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            },
+            "ipSystemStatsRefreshRate": {
+                "OvsTable": null,
+                "OvsColumn": null,
+                "Type": {
+                    "Key": null
+                },
+                "CustomFunction": null
+            }
+        }
+    }
+}
