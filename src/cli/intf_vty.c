@@ -78,14 +78,27 @@ compare_nodes_by_interface_in_numerical(const void *a_, const void *b_)
     const struct shash_node *const *b = b_;
     uint i1=0,i2=0,i3=0,i4=0;
 
-    sscanf((*a)->name,"%d-%d",&i1,&i2);
-    sscanf((*b)->name,"%d-%d",&i3,&i4);
-
     if(strstr(((*a)->name), "vlan") != NULL &&
        strstr(((*b)->name), "vlan") != NULL)
     {
-        sscanf((*a)->name,"vlan%d",&i1);
-        sscanf((*b)->name,"vlan%d",&i3);
+        sscanf((*a)->name, "vlan%d", &i1);
+        sscanf((*b)->name, "vlan%d", &i3);
+    }
+
+    else if(strstr(((*a)->name), "vlan") != NULL)
+    {
+        return -1;
+    }
+
+    else if(strstr(((*b)->name), "vlan") != NULL)
+    {
+         return 1;
+    }
+
+    else
+    {
+        sscanf((*a)->name, "%d-%d", &i1,&i2);
+        sscanf((*b)->name, "%d-%d", &i3,&i4);
     }
 
     if(i1 == i3)
