@@ -1,0 +1,358 @@
+{
+	"ifTable": {
+		"MibType": "Table",
+		"RootOvsTable": "interface",
+		"CacheTimeout": 30,
+		"SkipFunction": "ifTable_skip_function",
+		"Indexes": {
+			"ifIndex": {
+				"OvsTable": "interface",
+				"OvsColumn": "name",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifTableifIndex_custom_function"
+			}
+		},
+		"Columns": {
+		    "ifDescr": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": null
+			},
+			"ifType": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": null
+			},
+			"ifMtu": {
+				"OvsTable": "interface",
+				"OvsColumn": "mtu",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifMtu_custom_function"
+			},
+			"ifSpeed": {
+				"OvsTable": "interface",
+				"OvsColumn": "hw_intf_info",
+				"Type": {
+					"Key": "max_speed"
+				},
+				"CustomFunction":null
+			},
+			"ifPhysAddress": {
+				"OvsTable": "interface",
+				"OvsColumn": "mac_in_use",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction":"ifPhysAddress_custom_function"
+			},
+			"ifAdminStatus": {
+				"OvsTable": "interface",
+				"OvsColumn": "admin_state",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifAdminStatus_custom_function"
+			},
+			"ifOperStatus": {
+				"OvsTable": "interface",
+				"OvsColumn": "admin_state",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifOperStatus_custom_function"
+			},
+			"ifLastChange": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": null
+			},
+			"ifInOctets": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifInOctets_custom_function"
+			},
+			"ifInUcastPkts": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifInUcastPkts_custom_function"
+			},
+			"ifInNUcastPkts": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifInNUcastPkts_custom_function"
+			},
+			"ifInDiscards": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifInDiscards_custom_function"
+			},
+			"ifInErrors": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifInErrors_custom_function"
+			},
+			"ifInUnknownProtos": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifInUnknownProtos_custom_function"
+			},
+			"ifOutOctets": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifOutOctets_custom_function"
+			},
+			"ifOutUcastPkts": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifOutUcastPkts_custom_function"
+			},
+			"ifOutNUcastPkts": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifOutNUcastPkts_custom_function"
+			},
+			"ifOutDiscards": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifOutDiscards_custom_function"
+			},
+			"ifOutErrors": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifOutErrors_custom_function"
+			},
+			"ifOutQLen": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": null
+			},
+			"ifSpecific": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": null
+			}
+		}
+	},
+	"ifXTable": {
+		"MibType": "Table",
+		"RootOvsTable": "interface",
+		"CacheTimeout": 30,
+		"SkipFunction": "ifXTable_skip_function",
+		"Indexes": {
+		    "ifIndex": {
+				"OvsTable": "interface",
+				"OvsColumn": "name",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifTableifIndex_custom_function"
+			}
+		},
+		"Columns": {
+		        "ifName": {
+				"OvsTable": "interface",
+				"OvsColumn": "name",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": null
+			},
+			"ifInMulticastPkts": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifInMulticastPkts_custom_function"
+			},
+			"ifInBroadcastPkts": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifInBroadcastPkts_custom_function"
+			},
+			"ifOutMulticastPkts": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifOutMulticastPkts_custom_function"
+			},
+			"ifOutBroadcastPkts": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifOutBroadcastPkts_custom_function"
+			},
+			"ifHCInOctets": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifHCInOctets_custom_function"
+			},
+			"ifHCInUcastPkts": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifHCInUcastPkts_custom_function"
+			},
+			"ifHCInMulticastPkts": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifHCInMulticastPkts_custom_function"
+			},
+			"ifHCInBroadcastPkts": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifHCInBroadcastPkts_custom_function"
+			},
+			"ifHCOutOctets": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifHCOutOctets_custom_function"
+			},
+			"ifHCOutUcastPkts": {
+				"OvsTable": "interface",
+				"OvsColumn": "statistics",
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifHCOutUcastPkts_custom_function"
+			},
+			"ifHCOutMulticastPkts": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifHCOutMulticastPkts_custom_function"
+			},
+			"ifHCOutBroadcastPkts": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": "ifHCOutBroadcastPkts_custom_function"
+			},
+			"ifLinkUpDownTrapEnable": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": null
+			},
+			"ifHighSpeed": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": null
+			},
+			"ifPromiscuousMode": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": null
+			},
+			"ifConnectorPresent": {
+				"OvsTable": "interface",
+				"OvsColumn": "pm_info",
+				"Type": {
+					"Key": "connector"
+				},
+				"CustomFunction": "ifConnectorPresent_custom_function"
+			},
+			"ifAlias": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": null
+			},
+			"ifCounterDiscontinuityTime": {
+				"OvsTable": null,
+				"OvsColumn": null,
+				"Type": {
+					"Key": null
+				},
+				"CustomFunction": null
+			}
+		}
+	}
+}
