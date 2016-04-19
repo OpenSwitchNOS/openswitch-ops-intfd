@@ -46,6 +46,7 @@ target_link_libraries (${INTFD} ${OPSUTILS_LIBRARIES} ${CONFIG_YAML_LIBRARIES} $
 
 # Build ops-intfd cli shared libraries.
 add_subdirectory(src/cli)
+add_subdirectory(src/snmp)
 
 # Rules to install ops-intfd binary in rootfs
 install(TARGETS ${INTFD}
