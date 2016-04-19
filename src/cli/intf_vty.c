@@ -417,7 +417,7 @@ DEFUN_DYN_HELPSTR (cli_intf_mtu,
         cli_intf_mtu_cmd,
         "mtu WORD",
         "Configure MTU for the interface\n"
-        "Enter MTU (in bytes) in the range <576-9216> (Default: 1500)\n",
+        "Enter MTU (in bytes) in the range <576-9192> (Default: 1500)\n",
         "\n\ndyncb_helpstr_mtu\n")
 {
     const struct ovsrec_interface * row = NULL;
@@ -430,7 +430,7 @@ DEFUN_DYN_HELPSTR (cli_intf_mtu,
     /* Validate that MTU is in the range 576-9216 */
     if (!(vty_flags & CMD_FLAG_NO_CMD)) {
         mtu = strtol(argv[0], &endptr, 10);
-        if((*endptr != '\0') || (mtu < 576 || mtu > 9216)) {
+        if((*endptr != '\0') || (mtu < 576 || mtu > 9192)) {
            vty_out(vty, "Invalid MTU value%s", VTY_NEWLINE);
            return CMD_ERR_NOTHING_TODO;
         }
