@@ -699,6 +699,7 @@ static void
 intfd_parse_split_pm_info(struct intf_pm_info *pm_info, const struct smap *ifrow_pm_info)
 {
     const char *data = NULL;
+    const char *sup_speed = NULL;
 
     /* pm_info:connector_status */
     pm_info->connector_status = INTERFACE_PM_INFO_CONNECTOR_STATUS_UNRECOGNIZED;
@@ -714,6 +715,11 @@ intfd_parse_split_pm_info(struct intf_pm_info *pm_info, const struct smap *ifrow
     data = smap_get(ifrow_pm_info, INTERFACE_PM_INFO_MAP_CONNECTOR);
     if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4))) {
         pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_CR;
+        //check if 40G DAC is connected; by reading the supported speed
+        sup_speed = smap_get(ifrow_pm_info, "supported_speeds");
+        if ( sup_speed  && (STR_EQ( sup_speed, "40000"))) {
+            pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP_DAC;
+        }
 
     } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4))) {
         pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_LR;
