@@ -904,6 +904,73 @@ remove_port_reference (const struct ovsrec_port *port_row)
 }
 
 /*
+ * Function : remove_interface_from_lag_port
+ * Responsibility : Remove reference to interface in lag port
+ * Parameters :
+ *   const struct ovsrec_port *port_row: pointer to port row
+ *   const struct ovsrec_interface *interface_row: pointer to interface row
+ *   bool split: Boolean to identify if parent interface is split or not
+ */
+void remove_interface_from_lag_port(const struct ovsrec_port *port_row,
+                                    const struct ovsrec_interface* interface_row)
+{
+    struct smap smap = SMAP_INITIALIZER(&smap);
+    struct ovsrec_interface **interfaces;
+    int i,n = 0;
+
+    /* Remove Aggregation Key */
+    smap_clone(&smap, &interface_row->other_config);
+    smap_remove(&smap, INTERFACE_OTHER_CONFIG_MAP_LACP_AGGREGATION_KEY);
+    ovsrec_interface_set_other_config(interface_row, &smap);
+    smap_destroy(&smap);
+
+    /* Unlink the interface from the Port row found*/
+    interfaces = xmalloc(sizeof *port_row->interfaces * (port_row->n_interfaces-1));
+    for(i = n = 0; i < port_row->n_interfaces; i++)
+    {
+        if(port_row->interfaces[i] != interface_row)
+        {
+            interfaces[n++] = port_row->interfaces[i];
+        }
+    }
+    ovsrec_port_set_interfaces(port_row, interfaces, n);
+    free(interfaces);
+}
+
+/*
+ *  Function : port_find_with_references
+ *  Responsibility : Remove interface from Port Table, it could
+ *  be as a row or a reference inside a port (for example LAG)
+ *  Parameters :
+ *    const char *if_name : Interface name
+ *  Return : void
+*/
+void
+remove_port_and_references(const char *if_name)
+{
+    const struct ovsrec_port *port_row = NULL;
+    const struct ovsrec_interface* intf_row;
+    int i = 0;
+
+    OVSREC_PORT_FOR_EACH(port_row, idl)
+    {
+        if (strcmp(port_row->name, if_name) == 0) {
+            remove_port_reference(port_row);
+            ovsrec_port_delete(port_row);
+        }
+        else if (port_row->n_interfaces > 0)
+        {
+            for (i = 0; i < port_row->n_interfaces; i++) {
+                intf_row = port_row->interfaces[i];
+                if (strncmp(intf_row->name, if_name, strlen(intf_row->name)) == 0) {
+                   remove_interface_from_lag_port(port_row, intf_row);
+                }
+            }
+        }
+    }
+}
+
+/*
  * Function : handle_port_config
  * Responsibility : Handle deletion of all configuration
  *                  for split/no split cases
@@ -914,27 +981,17 @@ remove_port_reference (const struct ovsrec_port *port_row)
 static void
 handle_port_config (const struct ovsrec_interface *if_row, bool split)
 {
-  const struct ovsrec_port *port_row = NULL;
-  int i;
-  if (split)
-    {
-      port_row = port_find (if_row->name);
-      if (port_row)
-        {
-          remove_port_reference (port_row);
-          ovsrec_port_delete (port_row);
-        }
+    int i;
+    if (!if_row) {
+        VLOG_ERR("Interface row is empty");
+        return;
     }
-  else
-    {
-      for (i = 0; i < if_row->n_split_children; i++)
-        {
-          port_row = port_find (if_row->split_children[i]->name);
-          if (port_row)
-            {
-              remove_port_reference (port_row);
-              ovsrec_port_delete (port_row);
-            }
+    if (split) {
+        remove_port_and_references(if_row->name);
+    }
+    else {
+        for (i = 0; i < if_row->n_split_children; i++) {
+            remove_port_and_references(if_row->split_children[i]->name);
         }
     }
 }
