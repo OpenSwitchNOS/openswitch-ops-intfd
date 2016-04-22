@@ -2888,6 +2888,25 @@ cli_show_interface_queue_stats (struct cmd_element *self, struct vty *vty,
     return CMD_SUCCESS;
 }
 
+void
+display_header(bool brief) {
+    if (brief) {
+        /* Display the brief information */
+        vty_out(vty, "%s", VTY_NEWLINE);
+        vty_out(vty, "--------------------------------------------------"
+                     "------------------------------%s", VTY_NEWLINE);
+        vty_out(vty, "Ethernet         VLAN    Type Mode   Status  Reason  "
+                     "                 Speed    Port%s", VTY_NEWLINE);
+        vty_out(vty, "Interface                                            "
+                     "                 (Mb/s)   Ch#%s", VTY_NEWLINE);
+        vty_out(vty, "--------------------------------------------------"
+                     "------------------------------%s", VTY_NEWLINE);
+    }
+    else {
+        vty_out (vty, "%s", VTY_NEWLINE);
+    }
+}
+
 int
 cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         int flags, int argc, const char *argv[], bool brief)
@@ -2920,31 +2939,15 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
     };
     int64_t intVal = 0;
 
-    if (brief)
-    {
-        /* Display the brief information */
-        vty_out(vty, "%s", VTY_NEWLINE);
-        vty_out(vty, "--------------------------------------------------"
-                     "------------------------------%s", VTY_NEWLINE);
-        vty_out(vty, "Ethernet         VLAN    Type Mode   Status  Reason  "
-                     "                 Speed    Port%s", VTY_NEWLINE);
-        vty_out(vty, "Interface                                            "
-                     "                 (Mb/s)   Ch#%s", VTY_NEWLINE);
-        vty_out(vty, "--------------------------------------------------"
-                     "------------------------------%s", VTY_NEWLINE);
-    }
-    else
-    {
-        vty_out (vty, "%s", VTY_NEWLINE);
-    }
-
     shash_init(&sorted_interfaces);
 
     OVSREC_INTERFACE_FOR_EACH(ifrow, idl)
     {
         const char *state_value;
+
         if(!ifrow->split_parent)
-        {   /*Parent (orphan) interface */
+        {
+            /*Parent (orphan) interface */
             state_value = smap_get(&ifrow->user_config,
                                    INTERFACE_USER_CONFIG_MAP_LANE_SPLIT);
             if(state_value
@@ -2952,8 +2955,17 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
                           INTERFACE_USER_CONFIG_MAP_LANE_SPLIT_SPLIT))
             {
                 VLOG_DBG("Skipped parent int %s, split_config= %s", ifrow->name, state_value);
+
+                /* can't show parent config, when the interface is split */
+                if ((argv[0] != NULL) && !strcmp(ifrow->name, argv[0])) {
+                    vty_out (vty, "Interface %s is split. Check the child interfaces"
+                                  " for configuration. %s", ifrow->name,
+                                  VTY_NEWLINE);
+                    return CMD_SUCCESS;
+                }
+
                 continue;
-            }
+           }
         }
         else
         {   /*Child interface */
@@ -2965,6 +2977,15 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
                                      INTERFACE_USER_CONFIG_MAP_LANE_SPLIT_SPLIT))
             {
                 VLOG_ERR("Skipped child int %s, split_config of parent= %s", ifrow->name, state_value);
+
+               /* can't show child interface config when parent is not split */
+               if ((argv[0] != NULL) && !strcmp(ifrow->name, argv[0])) {
+                    vty_out (vty, "Parent interface of %s is not split. "
+                                  "Check the parent interface for "
+                                  "configuration.%s", ifrow->name, VTY_NEWLINE);
+                    return CMD_SUCCESS;
+                }
+
                 continue;
             }
         }
@@ -2976,6 +2997,8 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         else if ((NULL != argv[0]) &&
             (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_VLANSUBINT) == 0))
         {
+             display_header(brief);
+
              cli_show_subinterface_row(ifrow, brief);
              shash_destroy(&sorted_interfaces);
              return CMD_SUCCESS;
@@ -2990,8 +3013,9 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         shash_add(&sorted_interfaces, ifrow->name, (void *)ifrow);
     }
 
-    nodes = sort_interface(&sorted_interfaces);
+    display_header(brief);
 
+    nodes = sort_interface(&sorted_interfaces);
     count = shash_count(&sorted_interfaces);
 
     for (idx = 0; idx < count; idx++)
