@@ -243,3 +243,23 @@ def test_user_configuration(topology, step):
     step("Step 22- Clear the user_config")
     sw_clear_user_config(ops1, test_intf)
     short_sleep()
+
+    step("Step 23- Display error message for show interface <child-intf> when parent is not split")
+    out = ops1("show interface 52-1")
+    assert "Parent interface of 52-1 is not split" in out
+    short_sleep()
+
+    step("Step 24- Display error message for show interface <parent-intf> when parent-intf is split")
+    ops1("configure terminal")
+    ops1("interface 50")
+    ops1._shells['vtysh']._prompt = (
+        '.*Do you want to continue [y/n]?'
+    )
+    ops1('split')
+    ops1._shells['vtysh']._prompt = (
+        '(^|\n)switch(\\([\\-a-zA-Z0-9]*\\))?#'
+    )
+    ops1('y')
+    out = ops1('do show interface 50')
+    assert "Interface 50 is split" in out
+    short_sleep()
