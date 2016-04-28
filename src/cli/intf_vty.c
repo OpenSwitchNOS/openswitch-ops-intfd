@@ -146,63 +146,6 @@ sort_interface(const struct shash *sh)
     }
 }
 
-/*-----------------------------------------------------------------------------
-| Function : show_l3_lacp_interface_rx_stats
-| Responsibility : Display L3 RX statistics
-| Parameters :
-|   struct vty* vty            : Used for ouput
-|   const struct ovsdb_*datum  : Statitistics data
-| Return : void
------------------------------------------------------------------------------*/
-void
-show_l3_lacp_interface_rx_stats(struct vty *vty, int lag_statistics [12])
-{
-    unsigned int index;
-
-    index = 0;
-    vty_out(vty, "            ucast: %d packets, ",
-            (index == UINT_MAX)? 0 : lag_statistics[index]);
-    index++;
-    vty_out(vty, "%d bytes",
-            (index == UINT_MAX)? 0 : lag_statistics[index]);
-    vty_out(vty, "%s", VTY_NEWLINE);
-    index++;
-    vty_out(vty, "            mcast: %d packets, ",
-            (index == UINT_MAX)? 0 : lag_statistics[index]);
-    index++;
-    vty_out(vty, "%d bytes",
-            (index == UINT_MAX)? 0 : lag_statistics[index]);
-    vty_out(vty, "%s", VTY_NEWLINE);
-}
-
-/*-----------------------------------------------------------------------------
-| Function : show_l3_lacp_interface_tx_stats
-| Responsibility : Display L3 TX statistics
-| Parameters :
-|   struct vty* vty            : Used for ouput
-|   const struct ovsdb_*datum  : Statitistics data
-| Return : void
------------------------------------------------------------------------------*/
-void
-show_l3_lacp_interface_tx_stats(struct vty *vty, int lag_statistics [12])
-{
-    unsigned int index;
-
-    index = 4;
-    vty_out(vty, "            ucast: %d packets, ",
-            (index == UINT_MAX)? 0 : lag_statistics[index]);
-    index++;
-    vty_out(vty, "%d bytes",
-            (index == UINT_MAX)? 0 : lag_statistics[index]);
-    vty_out(vty, "%s", VTY_NEWLINE);
-    index++;
-    vty_out(vty, "            mcast: %d packets, ",
-            (index == UINT_MAX)? 0 : lag_statistics[index]);
-    index++;
-    vty_out(vty, "%d bytes",
-            (index == UINT_MAX)? 0 : lag_statistics[index]);
-    vty_out(vty, "%s", VTY_NEWLINE);
-}
 
 /*
  * CLI "shutdown"
@@ -2445,7 +2388,6 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
                     VTY_NEWLINE);
         }
         vty_out(vty, " Speed %ld Mb/s %s",lag_speed/1000000 , VTY_NEWLINE);
-
         vty_out(vty, " RX%s", VTY_NEWLINE);
         vty_out(vty, "   %10d input packets  ", lag_statistics[0]);
         vty_out(vty, "   %10d bytes  ",lag_statistics[1]);
@@ -2478,127 +2420,6 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
         vty_out(vty, "%% Command incomplete.%s", VTY_NEWLINE);
       }
 }
-
-void
-show_ip_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
-                         const char *argv[])
-{
-    const struct ovsrec_port *lag_port = NULL;
-    const struct ovsrec_interface *if_row = NULL;
-    const char *aggregate_mode = NULL;
-    const struct ovsdb_datum *datum;
-    unsigned int index;
-
-    // Indexes for loops
-    int interface_index = 0;
-    int stat_index = 0;
-    int i;
-    bool lag_found = false;
-    bool isIpv6 = false;
-
-    if(!strcmp(argv[0], "ipv6"))
-        isIpv6 = true;
-
-    // Array to keep the statistics for each lag while adding the
-    // stats for each interface in the lag.
-    int lag_statistics [12] = {0};
-
-    // Aggregation-key variables
-    size_t aggr_key_len = 6;
-    char aggr_key[aggr_key_len];
-
-    OVSREC_PORT_FOR_EACH(lag_port, idl)
-    {
-        union ovsdb_atom atom;
-
-        if ((NULL != argv[1]) && (0 != strcmp(argv[1],lag_port->name)))
-        {
-            continue;
-        }
-
-        if(strncmp(lag_port->name, LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) != 0)
-        {
-            continue;
-        }
-        lag_found = true;
-
-        vty_out(vty, "Aggregate-name %s %s", lag_port->name, VTY_NEWLINE);
-        vty_out(vty, " Aggregated-interfaces : ");
-
-        for (interface_index = 0; interface_index < lag_port->n_interfaces; interface_index++)
-        {
-            if_row = lag_port->interfaces[interface_index];
-            vty_out(vty, "%s ", if_row->name);
-
-            datum = ovsrec_interface_get_statistics(if_row,
-                                OVSDB_TYPE_STRING, OVSDB_TYPE_INTEGER);
-
-            // Adding statistic value for each interface in the lag
-            for (stat_index = 0; stat_index < sizeof(lag_statistics)/sizeof(int); stat_index++)
-            {
-                atom.string = interface_statistics_keys[stat_index];
-                index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-                lag_statistics[stat_index] += (index == UINT_MAX)? 0 :
-                                              datum->values[index].integer;
-            }
-        }
-        vty_out(vty, "%s", VTY_NEWLINE);
-
-        /* Retrieve aggregation-key from lag name */
-        snprintf(aggr_key,
-                 aggr_key_len,
-                 "%s",
-                 lag_port->name + LAG_PORT_NAME_PREFIX_LENGTH);
-
-        vty_out(vty, " Aggregation-key : %s", aggr_key);
-        vty_out(vty, "%s", VTY_NEWLINE);
-
-        aggregate_mode = lag_port->lacp;
-        if(aggregate_mode)
-            vty_out(vty, " Aggregate mode : %s %s", aggregate_mode, VTY_NEWLINE);
-
-        /* Displaying primary and secondary addresses*/
-        if(isIpv6)
-        {
-            if (lag_port->ip6_address) {
-                vty_out(vty, " IPv6 address %s%s", lag_port->ip6_address,
-                        VTY_NEWLINE);
-            }
-            for (i = 0; i < lag_port->n_ip6_address_secondary; i++) {
-                vty_out(vty, " IPv6 address %s secondary%s",
-                        lag_port->ip6_address_secondary[i],
-                        VTY_NEWLINE);
-            }
-
-        }
-        else
-        {
-            if (lag_port->ip4_address) {
-                vty_out(vty, " IPv4 address %s%s", lag_port->ip4_address,
-                        VTY_NEWLINE);
-            }
-            for (i = 0; i < lag_port->n_ip4_address_secondary; i++) {
-                vty_out(vty, " IPv4 address %s secondary%s",
-                        lag_port->ip4_address_secondary[i],
-                        VTY_NEWLINE);
-            }
-        }
-
-        vty_out(vty, " RX%s", VTY_NEWLINE);
-        show_l3_lacp_interface_rx_stats(vty, lag_statistics);
-
-        vty_out(vty, " TX%s", VTY_NEWLINE);
-        show_l3_lacp_interface_tx_stats(vty, lag_statistics);
-    }
-
-    if (lag_found) {
-        vty_out(vty, "%s", VTY_NEWLINE);
-    }
-    else {
-        vty_out(vty, "%% Command incomplete.%s", VTY_NEWLINE);
-      }
-}
-
 
 void
 show_interface_stats(struct vty *vty, const struct ovsrec_interface *ifrow,
@@ -3757,20 +3578,9 @@ cli_show_ip_interface_exec(const char *argv[], int argc,
     const char *if_name = NULL;
     bool internal_if = false;
     bool isIpv6 = false;
-    bool isLag = true;
     if(!strcmp(argv[0], "ipv6"))
         isIpv6 = true;
     int64_t key_subintf_parent = 0;
-    static char *lag_statistics_keys [] = {
-        "ipv4_uc_rx_packets",
-        "ipv4_uc_rx_bytes",
-        "ipv4_mc_rx_packets",
-        "ipv4_mc_rx_bytes",
-        "ipv4_uc_tx_packets",
-        "ipv4_uc_tx_bytes",
-        "ipv4_mc_tx_packets",
-        "ipv4_mc_tx_bytes"
-    };
 
     if(argc > 1 && NULL != argv[1])
         if_name = argv[1];
@@ -3803,7 +3613,6 @@ cli_show_ip_interface_exec(const char *argv[], int argc,
             continue;
         }
         intVal = 0;
-        isLag = false;
         vty_out(vty, "%s", VTY_NEWLINE);
         internal_if = (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_INTERNAL) == 0) ? true : false;
 
@@ -3890,9 +3699,6 @@ cli_show_ip_interface_exec(const char *argv[], int argc,
         {
             break;
         }
-    }
-    if (isLag) {
-        show_ip_lacp_interfaces(vty, lag_statistics_keys, argv);
     }
 
     return 0;
