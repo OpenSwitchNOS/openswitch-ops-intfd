@@ -2886,6 +2886,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         "tx_errors"
     };
     int64_t intVal = 0;
+    const char *user_config_speed = NULL;
 
     shash_init(&sorted_interfaces);
 
@@ -2976,20 +2977,27 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
             show_interface_status(vty, ifrow, internal_if, brief);
 
-            intVal = 0;
-            datum = ovsrec_interface_get_link_speed(ifrow, OVSDB_TYPE_INTEGER);
-            if ((NULL != datum) && (datum->n >0))
-            {
-                intVal = datum->keys[0].integer;
-            }
-
-            if(intVal == 0)
-            {
-                vty_out(vty, " %-6s", "auto");
+            if (strcmp(OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN, ifrow->link_state) == 0 ){
+                user_config_speed = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_SPEEDS);
+                vty_out(vty,"%-6s", user_config_speed);
             }
             else
             {
-                vty_out(vty, " %-6ld", intVal/1000000);
+                intVal = 0;
+                datum = ovsrec_interface_get_link_speed(ifrow, OVSDB_TYPE_INTEGER);
+                if ((NULL != datum) && (datum->n >0))
+                {
+                    intVal = datum->keys[0].integer;
+                }
+
+                if(intVal == 0)
+                {
+                    vty_out(vty, " %-6s", "auto");
+                }
+                else
+                {
+                    vty_out(vty, " %-6ld", intVal/1000000);
+                }
             }
             vty_out(vty, "  -- ");  /* Port channel */
             vty_out (vty, "%s", VTY_NEWLINE);
