@@ -94,11 +94,30 @@ class LACPCliTest(OpsVsiTest):
         s1 = self.net.switches[0]
 
         s1.cmdCLI('configure terminal')
+        s1.cmdCLI('interface lag 3')
+        s1.cmdCLI('ip address 192.168.1.2/24')
+        s1.cmdCLI('exit')
+        s1.cmdCLI('interface lag 5')
+        s1.cmdCLI('exit')
         s1.cmdCLI('interface lag 1')
         s1.cmdCLI('ip address 10.1.1.1/24')
         s1.cmdCLI('ipv6 address 2001::1/12')
         s1.cmdCLI('exit')
         s1.cmdCLI('exit')
+
+        # Get information in order from show running-config interface
+        out = s1.cmdCLI('show running-config interface')
+        lines = out.split('\n')
+        success = 0
+        for line in lines:
+            if 'interface lag 1' in line:
+                success += 1
+            if 'interface lag 3' in line and success == 1:
+                success += 1
+            if 'interface lag 5' in line and success == 2:
+                success += 1
+        assert success == 3,\
+            'Test show running-config interface in order - FAILED!'
 
         # Get information from show running-config interface
         out = s1.cmdCLI('show running-config interface')
