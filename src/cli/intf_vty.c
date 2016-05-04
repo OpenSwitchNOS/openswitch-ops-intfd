@@ -48,6 +48,7 @@
 #include "vtysh/vtysh_ovsdb_if.h"
 #include "vtysh/vtysh_ovsdb_config.h"
 #include "vtysh_ovsdb_intf_context.h"
+#include "vtysh_ovsdb_intf_lag_context.h"
 #include "vtysh/utils/vlan_vtysh_utils.h"
 #include "vtysh/utils/lacp_vtysh_utils.h"
 #include "vtysh/utils/intf_vtysh_utils.h"
@@ -1576,10 +1577,21 @@ parse_lag(struct vty *vty, int argc, const char *argv[])
 {
     const char *data = NULL;
     const struct ovsrec_port *port_row = NULL;
+    vtysh_ovsdb_cbmsg msg;
+    struct feature_sorted_list *list = NULL;
+    const struct shash_node **nodes;
+    int idx, count;
     bool one_lag_to_show;
 
-    OVSREC_PORT_FOR_EACH(port_row, idl) {
-        if (strncmp(port_row->name, LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) == 0) {
+    msg.idl = idl;
+    idx = count = 0;
+    list = vtysh_intf_lag_context_init(&msg);
+
+    if (list != NULL) {
+        nodes = list->nodes;
+        count = list->count;
+        while (idx < count) {
+            port_row = nodes[idx]->data;
             one_lag_to_show = true;
             if (argc != 0) {
                if (strlen(argv[0]) > LAG_PORT_NAME_PREFIX_LENGTH) {
@@ -1639,8 +1651,9 @@ parse_lag(struct vty *vty, int argc, const char *argv[])
             {
                 vty_out(vty, "%3sipv6 address %s %s", "", port_row->ip6_address, VTY_NEWLINE);
             }
+            idx++;
 
-        }
+        } /* end while */
     }
 
     return 0;
