@@ -432,6 +432,14 @@ DEFUN_DYN_HELPSTR (cli_intf_speed,
     {
         if (strcmp(row->name, (char*)vty->index) == 0)
         {
+            if (is_parent_interface_split(row))
+            {
+                vty_out(vty,
+                        "This interface has been split. Operation"
+                        " not allowed%s", VTY_NEWLINE);
+                cli_do_config_abort (status_txn);
+                return CMD_SUCCESS;
+            }
             smap_clone(&smap_user_config,&row->user_config);
 
             if (vty_flags & CMD_FLAG_NO_CMD)
@@ -577,6 +585,14 @@ DEFUN_DYN_HELPSTR (cli_intf_mtu,
     {
         if (strcmp(row->name, (char*)vty->index) == 0)
         {
+            if (is_parent_interface_split(row))
+            {
+                vty_out(vty,
+                        "This interface has been split. Operation"
+                        " not allowed%s", VTY_NEWLINE);
+                cli_do_config_abort (status_txn);
+                return CMD_SUCCESS;
+            }
             smap_clone(&smap_user_config, &row->user_config);
 
             if (vty_flags & CMD_FLAG_NO_CMD)
@@ -660,6 +676,14 @@ DEFUN (cli_intf_duplex,
     {
         if (strcmp(row->name, (char*)vty->index) == 0)
         {
+            if (is_parent_interface_split(row))
+            {
+                vty_out(vty,
+                        "This interface has been split. Operation"
+                        " not allowed%s", VTY_NEWLINE);
+                cli_do_config_abort (status_txn);
+                return CMD_SUCCESS;
+            }
             smap_clone(&smap_user_config, &row->user_config);
 
             if ((vty_flags & CMD_FLAG_NO_CMD)
@@ -735,6 +759,14 @@ DEFUN (cli_intf_flowcontrol,
     {
         if (strcmp(row->name, (char*)vty->index) == 0)
         {
+            if (is_parent_interface_split(row))
+            {
+                vty_out(vty,
+                        "This interface has been split. Operation"
+                        " not allowed%s", VTY_NEWLINE);
+                cli_do_config_abort (status_txn);
+                return CMD_SUCCESS;
+            }
             const char *state_value = smap_get(&row->user_config,
                     INTERFACE_USER_CONFIG_MAP_PAUSE);
             char new_value[INTF_NAME_SIZE] = {0};
@@ -877,6 +909,14 @@ DEFUN (cli_intf_autoneg,
     {
         if (strcmp(row->name, (char*)vty->index) == 0)
         {
+            if (is_parent_interface_split(row))
+            {
+                vty_out(vty,
+                        "This interface has been split. Operation"
+                        " not allowed%s", VTY_NEWLINE);
+                cli_do_config_abort (status_txn);
+                return CMD_SUCCESS;
+            }
             smap_clone(&smap_user_config, &row->user_config);
 
             if (vty_flags & CMD_FLAG_NO_CMD)
