@@ -335,6 +335,7 @@ def test_user_configuration(topology, step):
     lines = out.split('\n')
     interfaces = [line for line in lines if "interface" in line]
     assert interfaces == alphanumeric_sort(interfaces)
+    short_sleep()
 
     step("Collecting output of show running-config interface")
     out = ops1("show running-config interface")
@@ -342,3 +343,20 @@ def test_user_configuration(topology, step):
     interfaces = [line for line in lines if "interface" in line]
     assert 'bridge_normal' in interfaces.pop(0) and \
            interfaces == alphanumeric_sort(interfaces)
+    short_sleep()
+
+    step("Step 26- Verify that the default admin status of an interface is down")
+    out = ops1("show interface 32")
+    assert 'Admin state is down' in out
+    short_sleep()
+
+    step("Step 27- Verify that the admin state is changed when interface is 'shutdown' and 'no shutdown'")
+    ops1("configure terminal")
+    ops1("interface 1")
+    ops1("no shutdown")
+    out = ops1("do show interface 1")
+    assert 'Admin state is up' in out
+
+    ops1("shutdown")
+    out = ops1("do show interface 1")
+    assert 'Admin state is down' in out and 'Interface 1 is down' in out

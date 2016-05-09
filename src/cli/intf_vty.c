@@ -299,8 +299,9 @@ DEFUN (cli_intf_shutdown,
             }
             else
             {
-                smap_remove(&smap_user_config,
-                        INTERFACE_USER_CONFIG_MAP_ADMIN);
+                smap_replace(&smap_user_config,
+                        INTERFACE_USER_CONFIG_MAP_ADMIN,
+                        OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN);
             }
             ovsrec_interface_set_user_config(row, &smap_user_config);
             break;
@@ -2671,7 +2672,7 @@ show_interface_status(struct vty *vty, const const struct ovsrec_interface *ifro
 
         state_value = smap_get(&ifrow->user_config,
                                INTERFACE_USER_CONFIG_MAP_ADMIN);
-        if ((NULL != state_value) &&
+        if ((NULL == state_value) ||
                 (strcmp(state_value,
                         OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN) == 0))
         {
@@ -2695,8 +2696,8 @@ show_interface_status(struct vty *vty, const const struct ovsrec_interface *ifro
         vty_out (vty, "Interface %s is ", ifrow->name);
         state_value = smap_get(&ifrow->user_config,
                                INTERFACE_USER_CONFIG_MAP_ADMIN);
-        if ((NULL != state_value)
-                && strcmp(state_value,
+        if ((NULL == state_value)
+                || strcmp(state_value,
                         OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN) == 0)
         {
             if(internal_if)
