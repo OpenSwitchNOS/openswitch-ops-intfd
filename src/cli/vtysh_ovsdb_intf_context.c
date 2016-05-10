@@ -263,7 +263,8 @@ vtysh_intf_context_clientcallback(void *p_private)
 
    cur_state = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_AUTONEG);
    if ((NULL != cur_state)
-         && (strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_AUTONEG_DEFAULT) != 0))
+         && (strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_AUTONEG_DEFAULT) != 0)
+         && (strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_AUTONEG_ON) != 0))
    {
       PRINT_INT_HEADER_IN_SHOW_RUN;
       vtysh_ovsdb_cli_print(p_msg, "%4s%s %s", "", "autonegotiation", cur_state);
