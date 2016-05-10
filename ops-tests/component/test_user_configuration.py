@@ -360,3 +360,19 @@ def test_user_configuration(topology, step):
     ops1("shutdown")
     out = ops1("do show interface 1")
     assert 'Admin state is down' in out and 'Interface 1 is down' in out
+    ops1("end")
+
+    step("Step 28- Verify that default autonegoation value doesn't come in output of show running-config and show running-config interface")
+    ops1("configure terminal")
+    ops1("interface 1")
+    ops1("autonegotiation on")
+
+    out = ops1("do show running-config")
+    lines = [line.strip() for line in out.split('\n')]
+    autoneg_line = lines[lines.index('interface 1') + 1]
+    assert 'autonegotiation on' not in autoneg_line
+
+    out = ops1("do show running-config interface")
+    lines = [line.strip() for line in out.split('\n')]
+    autoneg_line = lines[lines.index('interface 1') + 1]
+    assert 'autonegotiation on' not in autoneg_line

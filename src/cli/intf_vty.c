@@ -1757,7 +1757,9 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
                 INTERFACE_USER_CONFIG_MAP_AUTONEG);
         if ((NULL != cur_state)
                 && (strcmp(cur_state,
-                        INTERFACE_USER_CONFIG_MAP_AUTONEG_DEFAULT) != 0))
+                        INTERFACE_USER_CONFIG_MAP_AUTONEG_DEFAULT) != 0)
+                && (strcmp(cur_state,
+                        INTERFACE_USER_CONFIG_MAP_AUTONEG_ON) != 0))
         {
             PRINT_INT_HEADER_IN_SHOW_RUN;
             vty_out(vty, "   autonegotiation %s %s", cur_state, VTY_NEWLINE);
