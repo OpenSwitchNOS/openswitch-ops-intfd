@@ -39,6 +39,8 @@ def test_show_running_config_lag_interface(topology, step):
     with ops1.libs.vtysh.ConfigInterfaceLag("1") as ctx:
         ctx.ip_address("10.1.1.1/24")
         ctx.ipv6_address("2001::1/12")
+        ctx.lacp_fallback_mode_all_active()
+        ctx.lacp_fallback_timeout(200)
 
     output = ops1("show running-config interface")
     lines = output.split('\n')
@@ -49,7 +51,11 @@ def test_show_running_config_lag_interface(topology, step):
             success += 1
         if 'ipv6 address 2001::1/12' in line:
             success += 1
-    assert success == 2,\
+        if 'lacp fallback mode all_active' in line:
+            success += 1
+        if 'lacp fallback timeout 200' in line:
+            success += 1
+    assert success == 4,\
         'Test show running-config interface command - Failed'
 
     output = ops1("show running-config interface lag1")
@@ -60,5 +66,9 @@ def test_show_running_config_lag_interface(topology, step):
             success += 1
         if 'ipv6 address 2001::1/12' in line:
             success += 1
-    assert success == 2,\
+        if 'lacp fallback mode all_active' in line:
+            success += 1
+        if 'lacp fallback timeout 200' in line:
+            success += 1
+    assert success == 4,\
         'Test show running-config interface <lag_id> - Failed'
