@@ -1582,6 +1582,20 @@ parse_lag(struct vty *vty, int argc, const char *argv[])
                   }
                }
 
+			   data = NULL;
+			   data = smap_get(&port_row->other_config, PORT_OTHER_CONFIG_MAP_LACP_FALLBACK_MODE);
+			   if (data) {
+				   if (VTYSH_STR_EQ(data, PORT_OTHER_CONFIG_LACP_FALLBACK_MODE_ALL_ACTIVE)) {
+					   vty_out (vty, "%3slacp fallback mode all_active%s", " ", VTY_NEWLINE);
+				   }
+			   }
+
+			   data = NULL;
+			   data = smap_get(&port_row->other_config, PORT_OTHER_CONFIG_MAP_LACP_FALLBACK_TIMEOUT);
+			   if (data) {
+				   vty_out (vty, "%3slacp fallback timeout %s%s"," ", data, VTY_NEWLINE);
+			   }
+
                data = smap_get(&port_row->other_config, "lacp-time");
 
                if (data) {
