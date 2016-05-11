@@ -180,10 +180,12 @@ compare_both_intf_numbers (const char *name_intf1, const char *name_intf2)
 static int
 compare_only_one_proper_intf_name (const char *name1, const char *name2)
 {
-     if (isdigit(*name1))
-	 return -1;
-     else
+     if (isdigit(*name1)) {
+         return -1;
+    }
+     else {
          return 1;
+    }
 }
 
 /* qsort comparator function.
@@ -1621,6 +1623,25 @@ parse_lag(struct vty *vty, int argc, const char *argv[])
                   if (VTYSH_STR_EQ(data, "true")) {
                       vty_out (vty, "%3slacp fallback%s"," ", VTY_NEWLINE);
                   }
+               }
+
+               data = NULL;
+               data = smap_get(&port_row->other_config,
+                               PORT_OTHER_CONFIG_MAP_LACP_FALLBACK_MODE);
+               if (data) {
+                   if (VTYSH_STR_EQ(data,
+                                    PORT_OTHER_CONFIG_LACP_FALLBACK_MODE_ALL_ACTIVE)) {
+                       vty_out (vty, "%3slacp fallback mode all_active%s",
+                                " ", VTY_NEWLINE);
+                   }
+               }
+
+               data = NULL;
+               data = smap_get(&port_row->other_config,
+                               PORT_OTHER_CONFIG_MAP_LACP_FALLBACK_TIMEOUT);
+               if (data) {
+                   vty_out (vty, "%3slacp fallback timeout %s%s"," ",
+                            data, VTY_NEWLINE);
                }
 
                data = smap_get(&port_row->other_config, "lacp-time");
