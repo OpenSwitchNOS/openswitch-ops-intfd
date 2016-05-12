@@ -3193,6 +3193,13 @@ DEFUN (vtysh_interface,
     unsigned int parent_if_number;
     unsigned int split_child_id;
 
+    /* User not allowed to configure default interface bridge_normal */
+    if (strcmp(argv[0], "bridge_normal") == 0) {
+        vty_out (vty, "Configuration of %s (default) not allowed.%s",
+                       argv[0],VTY_NEWLINE);
+        return CMD_ERR_NOTHING_TODO;
+    }
+
     /* check if a split child interface can be configured */
     if (strchr(argv[0], '-')) {
         sscanf (argv[0],"%u-%u",&parent_if_number, &split_child_id);

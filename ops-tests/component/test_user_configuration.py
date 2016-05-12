@@ -360,3 +360,9 @@ def test_user_configuration(topology, step):
     ops1("shutdown")
     out = ops1("do show interface 1")
     assert 'Admin state is down' in out and 'Interface 1 is down' in out
+    ops1("end")
+
+    step("Step 28- Verify that user not able to configure default interface bridge_normal")
+    ops1("configure terminal")
+    out = ops1("interface bridge_normal")
+    assert 'Configuration of bridge_normal (default) not allowed' in out
