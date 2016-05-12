@@ -376,3 +376,10 @@ def test_user_configuration(topology, step):
     lines = [line.strip() for line in out.split('\n')]
     autoneg_line = lines[lines.index('interface 1') + 1]
     assert 'autonegotiation on' not in autoneg_line
+    ops1("end")
+    short_sleep()
+
+    step("Step 29- Verify that user not able to configure default interface bridge_normal")
+    ops1("configure terminal")
+    out = ops1("interface bridge_normal")
+    assert 'Configuration of bridge_normal (default) not allowed' in out
