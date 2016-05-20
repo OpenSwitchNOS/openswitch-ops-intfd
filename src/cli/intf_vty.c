@@ -1628,6 +1628,12 @@ parse_lag(struct vty *vty, int argc, const char *argv[])
                if (data) {
                   vty_out (vty, "%3slacp rate %s%s"," ", data, VTY_NEWLINE);
                }
+
+               bool bPrinted = true;
+               qos_trust_port_show_running_config(port_row, &bPrinted, "interface");
+               qos_apply_port_show_running_config(port_row, &bPrinted, "interface");
+               qos_cos_port_show_running_config(port_row, &bPrinted, "interface");
+               qos_dscp_port_show_running_config(port_row, &bPrinted, "interface");
             }
 
             if(port_row->ip4_address)
@@ -2557,7 +2563,14 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
                     lag_port->ip6_address_secondary[i],
                     VTY_NEWLINE);
         }
+
         vty_out(vty, " Speed %ld Mb/s %s",lag_speed/1000000 , VTY_NEWLINE);
+
+        qos_trust_port_show(lag_port, lag_port->name);
+        qos_apply_port_show(lag_port, lag_port->name);
+        qos_cos_port_show(lag_port, lag_port->name);
+        qos_dscp_port_show(lag_port, lag_port->name);
+
         vty_out(vty, " RX%s", VTY_NEWLINE);
         vty_out(vty, "   %10d input packets  ", lag_statistics[0]);
         vty_out(vty, "   %10d bytes  ",lag_statistics[1]);
@@ -3096,10 +3109,10 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
                 }
 
                 const struct ovsrec_port* port_row = port_find(ifrow->name);
-                qos_trust_port_show(port_row);
-                qos_apply_port_show(port_row);
-                qos_cos_port_show(port_row);
-                qos_dscp_port_show(port_row);
+                qos_trust_port_show(port_row, ifrow->name);
+                qos_apply_port_show(port_row, ifrow->name);
+                qos_cos_port_show(port_row, ifrow->name);
+                qos_dscp_port_show(port_row, ifrow->name);
 
                 intVal = 0;
                 datum = ovsrec_interface_get_link_speed(ifrow, OVSDB_TYPE_INTEGER);
@@ -3962,6 +3975,7 @@ intf_ovsdb_init(void)
     ovsdb_idl_add_column(idl, &ovsrec_vrf_col_ports);
     ovsdb_idl_add_table(idl, &ovsrec_table_port);
     ovsdb_idl_add_column(idl, &ovsrec_port_col_name);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_qos_status);
     return;
 }
 

@@ -25,6 +25,10 @@
 #define QOS_MAX_QUEUES 8
 #define QOS_QUEUE_STATS 3
 
+#define QOS_MAX_BUFFER_SIZE 64
+#define QOS_STATUS_QUEUE_PROFILE_KEY "queue_profile"
+#define QOS_STATUS_SCHEDULE_PROFILE_KEY "schedule_profile"
+
 void qos_trust_port_show_running_config(const struct ovsrec_port *port_row,
         bool *header_printed, const char *header);
 
@@ -37,12 +41,16 @@ void qos_apply_port_show_running_config(const struct ovsrec_port *port_row,
 void qos_dscp_port_show_running_config(const struct ovsrec_port *port_row,
         bool *header_printed, const char *header);
 
-void qos_trust_port_show(const struct ovsrec_port *port_row);
+void qos_trust_port_show(const struct ovsrec_port *port_row,
+        const char *interface_name);
 
-void qos_cos_port_show(const struct ovsrec_port *port_row);
+void qos_cos_port_show(const struct ovsrec_port *port_row,
+        const char *interface_name);
 
-void qos_apply_port_show(const struct ovsrec_port *port_row);
+void qos_apply_port_show(const struct ovsrec_port *port_row,
+        const char *interface_name);
 
-void qos_dscp_port_show(const struct ovsrec_port *port_row);
+void qos_dscp_port_show(const struct ovsrec_port *port_row,
+        const char *interface_name);
 
 #endif /* _QOS_INTF_H_ */
