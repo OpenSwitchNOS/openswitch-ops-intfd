@@ -133,6 +133,21 @@ def sw_get_intf_state(dut, int, fields):
 def short_sleep(tm=.5):
     sleep(tm)
 
+def max_mtu_validation(sw):
+
+    ''' get the maximum mtu value supported on platform '''
+    out = sw("/usr/bin/ovsdb-client dump Subsystem other_info", shell = "bash")
+    lines = out.split(',')
+    for line in lines:
+        if "max_transmission_unit" in line:
+            max_mtu = line.split('=')[1]
+
+    ''' verify behavior on CLI '''
+    sw("configure terminal")
+    sw("interface 22")
+    out = sw("mtu " + max_mtu + '1')
+    assert 'Invalid MTU value' in out
+    sw("end")
 
 def test_user_configuration(topology, step):
     ops1 = topology.get("ops1")
@@ -229,13 +244,8 @@ def test_user_configuration(topology, step):
     assert mtu == '"576"'
 
     step("Step 14- Set MTU to max allowed value.")
-    sw_set_intf_user_config(ops1, test_intf, ['admin=up', 'mtu=1500'])
+    max_mtu_validation(ops1)
     short_sleep()
-
-    mtu, hw_enable = sw_get_intf_state(ops1, test_intf,
-                                       ['hw_intf_config:mtu',
-                                        'hw_intf_config:enable'])
-    assert mtu == '"1500"' and hw_enable == '"true"'
 
     step("Step 15- Set MTU to value in the allowed range.")
     sw_set_intf_user_config(ops1, test_intf, ['admin=up', 'mtu=1000'])

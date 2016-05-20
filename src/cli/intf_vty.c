@@ -517,10 +517,9 @@ DEFUN_NO_FORM (cli_intf_speed,
         "speed",
         "Enter the interface speed\n");
 
-void
-dyncb_helpstr_mtu(struct cmd_token *token, struct vty *vty, \
-                  char * const helpstr, int max_strlen)
-{
+/* get maximum supported MTU value on the platform */
+const char *
+get_max_supported_mtu_value() {
     const struct ovsrec_subsystem * row = NULL;
     const char * mtu = NULL;
 
@@ -528,15 +527,25 @@ dyncb_helpstr_mtu(struct cmd_token *token, struct vty *vty, \
     if (!row)
     {
         VLOG_ERR(OVSDB_ROW_FETCH_ERROR);
-        return;
+        return OVSDB_ROW_FETCH_ERROR;
     }
 
     OVSREC_SUBSYSTEM_FOR_EACH(row, idl)
     {
         mtu = smap_get(&row->other_info, "max_transmission_unit");
-        if (mtu != NULL)
-            snprintf(helpstr, max_strlen, \
-                     "Enter MTU (in bytes) in the range <576-%s>", mtu);
+    }
+
+    return mtu;
+}
+
+void
+dyncb_helpstr_mtu(struct cmd_token *token, struct vty *vty, \
+                  char * const helpstr, int max_strlen)
+{
+    const char * mtu = get_max_supported_mtu_value();
+    if (mtu != NULL) {
+        snprintf(helpstr, max_strlen, \
+                "Enter MTU (in bytes) in the range <576-%s>", mtu);
     }
     return;
 }
@@ -548,8 +557,8 @@ DEFUN_DYN_HELPSTR (cli_intf_mtu,
         cli_intf_mtu_cmd,
         "mtu WORD",
         "Configure MTU for the interface\n"
-        "Enter MTU (in bytes) in the range <576-9192> (Default: 1500)\n",
-        "\n\ndyncb_helpstr_mtu\n")
+        "\n",
+        "\ndyncb_helpstr_mtu\n")
 {
     const struct ovsrec_interface * row = NULL;
     enum ovsdb_idl_txn_status status;
@@ -557,11 +566,14 @@ DEFUN_DYN_HELPSTR (cli_intf_mtu,
     struct ovsdb_idl_txn* status_txn;
     long mtu;
     char *endptr;
+    int max_mtu_platform;
+
+    max_mtu_platform = (int) strtol(get_max_supported_mtu_value(), NULL, 10);
 
     /* Validate that MTU is in the range 576-9216 */
     if (!(vty_flags & CMD_FLAG_NO_CMD)) {
         mtu = strtol(argv[0], &endptr, 10);
-        if((*endptr != '\0') || (mtu < 576 || mtu > 9192)) {
+        if((*endptr != '\0') || (mtu < 576 || mtu > max_mtu_platform)) {
            vty_out(vty, "Invalid MTU value%s", VTY_NEWLINE);
            return CMD_ERR_NOTHING_TODO;
         }
