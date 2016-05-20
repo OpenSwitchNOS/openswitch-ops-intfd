@@ -30,19 +30,28 @@
 
 extern struct ovsdb_idl *idl;
 
-static bool is_member_of_lag(const char *port_name) {
+/**
+ * Returns the lag for which the given port_name is a member, or
+ * NULL if the port_name is not a member of a lag.
+ */
+static const struct ovsrec_port * get_owning_lag(const char *port_name) {
     const struct ovsrec_port *port_row;
     OVSREC_PORT_FOR_EACH(port_row, idl) {
         int i;
         for (i = 0; i < port_row->n_interfaces; i++) {
             if ((strcmp(port_row->interfaces[i]->name, port_name) == 0)
                     && (strcmp(port_row->name, port_name) != 0)) {
-                return true;
+                return port_row;
             }
         }
     }
 
-    return false;
+    return NULL;
+}
+
+static bool is_member_of_lag(const char *port_name) {
+    bool is_member = get_owning_lag(port_name) != NULL;
+    return is_member;
 }
 
 void qos_trust_port_show_running_config(const struct ovsrec_port *port_row,
@@ -137,37 +146,44 @@ void qos_dscp_port_show_running_config(const struct ovsrec_port *port_row,
     vty_out(vty, "    qos dscp %s%s", dscp_map_index, VTY_NEWLINE);
 }
 
-void qos_trust_port_show(const struct ovsrec_port *port_row) {
-    if (port_row == NULL) {
-        return;
-    }
-
-    if (is_member_of_lag(port_row->name)) {
-        return;
-    }
-
+void qos_trust_port_show(const struct ovsrec_port *port_row,
+        const char *interface_name) {
     const struct ovsrec_system *system_row = ovsrec_system_first(idl);
     const char *qos_trust_name = smap_get(
             &system_row->qos_config, QOS_TRUST_KEY);
 
-    const char *map_value = smap_get(&port_row->qos_config, QOS_TRUST_KEY);
-    if (map_value != NULL) {
-        qos_trust_name = map_value;
+    const struct ovsrec_port *port_to_show = port_row;
+
+    const struct ovsrec_port *owning_lag = get_owning_lag(interface_name);
+    if (owning_lag != NULL) {
+        port_to_show = owning_lag;
+    }
+
+    if (port_to_show != NULL) {
+        const char *map_value = smap_get(&port_to_show->qos_config,
+                QOS_TRUST_KEY);
+        if (map_value != NULL) {
+            qos_trust_name = map_value;
+        }
     }
 
     vty_out(vty, " qos trust %s%s", qos_trust_name, VTY_NEWLINE);
 }
 
-void qos_cos_port_show(const struct ovsrec_port *port_row) {
-    if (port_row == NULL) {
+void qos_cos_port_show(const struct ovsrec_port *port_row,
+        const char *interface_name) {
+    const struct ovsrec_port *port_to_show = port_row;
+
+    const struct ovsrec_port *owning_lag = get_owning_lag(interface_name);
+    if (owning_lag != NULL) {
+        port_to_show = owning_lag;
+    }
+
+    if (port_to_show == NULL) {
         return;
     }
 
-    if (is_member_of_lag(port_row->name)) {
-        return;
-    }
-
-    const char *cos_map_index = smap_get(&port_row->qos_config,
+    const char *cos_map_index = smap_get(&port_to_show->qos_config,
             QOS_COS_OVERRIDE_KEY);
     if (cos_map_index == NULL) {
         return;
@@ -176,42 +192,79 @@ void qos_cos_port_show(const struct ovsrec_port *port_row) {
     vty_out(vty, " qos cos override %s%s", cos_map_index, VTY_NEWLINE);
 }
 
-void qos_apply_port_show(const struct ovsrec_port *port_row) {
-    if (port_row == NULL) {
-        return;
-    }
-
-    if (is_member_of_lag(port_row->name)) {
-        return;
-    }
-
+void qos_apply_port_show(const struct ovsrec_port *port_row,
+        const char *interface_name) {
     const struct ovsrec_system *system_row = ovsrec_system_first(idl);
-
-    /* Show the queue profile. */
     const char *queue_profile_name = system_row->q_profile->name;
-    if (port_row->q_profile != NULL) {
-        queue_profile_name = port_row->q_profile->name;
-    }
-    vty_out(vty, " qos queue-profile %s%s", queue_profile_name, VTY_NEWLINE);
-
-    /* Show the schedule profile. */
     const char *schedule_profile_name = system_row->qos->name;
-    if (port_row->qos != NULL) {
-        schedule_profile_name = port_row->qos->name;
+    const char *queue_profile_status = NULL;
+    const char *schedule_profile_status = NULL;
+
+    const struct ovsrec_port *port_to_show = port_row;
+
+    const struct ovsrec_port *owning_lag = get_owning_lag(interface_name);
+    if (owning_lag != NULL) {
+        port_to_show = owning_lag;
     }
-    vty_out(vty, " qos schedule-profile %s%s", schedule_profile_name, VTY_NEWLINE);
+
+    if (port_to_show != NULL) {
+        if (port_to_show->q_profile != NULL) {
+            queue_profile_name = port_to_show->q_profile->name;
+        }
+
+        if (port_to_show->qos != NULL) {
+            schedule_profile_name = port_to_show->qos->name;
+        }
+
+        queue_profile_status = smap_get(&port_to_show->qos_status,
+                QOS_STATUS_QUEUE_PROFILE_KEY);
+        schedule_profile_status = smap_get(&port_to_show->qos_status,
+                QOS_STATUS_SCHEDULE_PROFILE_KEY);
+    }
+
+    /* Show queue profile. */
+    if (queue_profile_status != NULL && strncmp(queue_profile_name,
+            queue_profile_status, QOS_MAX_BUFFER_SIZE) != 0) {
+        /* Print the status, if it differs from the config. */
+        vty_out(vty, " qos queue-profile %s, status is %s%s",
+                queue_profile_name,
+                queue_profile_status,
+                VTY_NEWLINE);
+    } else {
+        vty_out(vty, " qos queue-profile %s%s",
+                queue_profile_name,
+                VTY_NEWLINE);
+    }
+
+    /* Show schedule profile. */
+    if (schedule_profile_status != NULL && strncmp(schedule_profile_name,
+            schedule_profile_status, QOS_MAX_BUFFER_SIZE) != 0) {
+        /* Print the status, if it differs from the config. */
+        vty_out(vty, " qos schedule-profile %s, status is %s%s",
+                schedule_profile_name,
+                schedule_profile_status,
+                VTY_NEWLINE);
+    } else {
+        vty_out(vty, " qos schedule-profile %s%s",
+                schedule_profile_name,
+                VTY_NEWLINE);
+    }
 }
 
-void qos_dscp_port_show(const struct ovsrec_port *port_row) {
-    if (port_row == NULL) {
+void qos_dscp_port_show(const struct ovsrec_port *port_row,
+        const char *interface_name) {
+    const struct ovsrec_port *port_to_show = port_row;
+
+    const struct ovsrec_port *owning_lag = get_owning_lag(interface_name);
+    if (owning_lag != NULL) {
+        port_to_show = owning_lag;
+    }
+
+    if (port_to_show == NULL) {
         return;
     }
 
-    if (is_member_of_lag(port_row->name)) {
-        return;
-    }
-
-    const char *dscp_map_index = smap_get(&port_row->qos_config,
+    const char *dscp_map_index = smap_get(&port_to_show->qos_config,
             QOS_DSCP_OVERRIDE_KEY);
     if (dscp_map_index == NULL) {
         return;
