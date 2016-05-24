@@ -63,8 +63,11 @@
 
 #include "intfd.h"
 #include "eventlog.h"
+#include <diag_dump.h>
 
 VLOG_DEFINE_THIS_MODULE(ops_intfd);
+
+#define DIAGNOSTIC_BUFFER_LEN 16000
 
 /** @ingroup ops-intfd
  * @{ */
@@ -97,6 +100,34 @@ intfd_unixctl_dump(struct unixctl_conn *conn, int argc,
     ds_destroy(&ds);
 } /* intfd_unixctl_dump */
 
+/*
+ * Function         : intfd_diag_dump_basic_cb
+ * Responsibility   : callback handler function for diagnostic dump basic
+ *                    it allocates memory as per requirement and populates data.
+ *                    INIT_DIAG_DUMP_BASIC will free allocated memory.
+ * Parameters       : feature name string, buffer ptr
+ * Returns          : void
+ */
+
+static void
+intfd_diag_dump_basic_cb(const char *feature , char **buf)
+{
+    struct ds ds1 = DS_EMPTY_INITIALIZER;
+    if (!buf)
+        return;
+    *buf = xcalloc(1, DIAGNOSTIC_BUFFER_LEN);
+    if(*buf) {
+        /* populate basic diagnostic data to buffer  */
+        intfd_debug_dump(&ds1, 0, NULL);
+        sprintf(*buf, "%s", ds_cstr(&ds1));
+        VLOG_INFO("basic diag-dump data populated for feature %s", feature);
+    } else{
+        VLOG_ERR("Memory allocation failed for feature %s , %d bytes",
+                feature, DIAGNOSTIC_BUFFER_LEN);
+    }
+    return;
+} /*intfd_diag_dump_basic_cb */
+
 static void
 intfd_init(const char *db_path)
 {
@@ -104,6 +135,9 @@ intfd_init(const char *db_path)
 
     /* Initialize IDL through a new connection to the DB. */
     intfd_ovsdb_init(db_path);
+
+    /* Register diagnostic callback function */
+    INIT_DIAG_DUMP_BASIC(intfd_diag_dump_basic_cb);
 
     retval = event_log_init("INTERFACE");
     if(retval < 0) {
