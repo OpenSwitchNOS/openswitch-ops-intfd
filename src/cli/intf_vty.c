@@ -61,6 +61,12 @@ extern int
 create_sub_interface(const char* subifname);
 #define INTF_NAME_SIZE 50
 
+/* macros used to print headers in show commands */
+#define SHOW_INTERFACE_TRUNK_HEADER           1
+#define SHOW_INTERFACE_ACCESS_HEADER          2
+#define SHOW_INTERFACE_TRUNK_ALLOWED_HEADER   3
+#define SHOW_INTERFACE_BRIEF_HEADER           4
+
 static struct cmd_node interface_node =
    {
       INTERFACE_NODE,
@@ -3657,14 +3663,169 @@ DEFUN (cli_intf_show_intferface_ifname,
     return rc;
 }
 
+void
+show_header (int header)
+{
+    vty_out(vty, "%s", VTY_NEWLINE);
+
+    if(header == SHOW_INTERFACE_TRUNK_HEADER)
+    {
+        vty_out(vty, "--------------------------------------------------------%s",
+                VTY_NEWLINE);
+        vty_out(vty, "Port       Native VLAN       Mode     Status%s",
+                VTY_NEWLINE);
+        vty_out(vty, "--------------------------------------------------------%s",
+                VTY_NEWLINE);
+    }
+    else if(header == SHOW_INTERFACE_TRUNK_ALLOWED_HEADER)
+    {
+        vty_out(vty, "%s", VTY_NEWLINE);
+        vty_out(vty, "--------------------------------------------------------%s",
+                VTY_NEWLINE);
+        vty_out(vty, "Port            VLAN allowed on trunk%s",
+                VTY_NEWLINE);
+        vty_out(vty, "--------------------------------------------------------%s",
+                VTY_NEWLINE);
+    }
+    else if(header == SHOW_INTERFACE_ACCESS_HEADER)
+    {
+        vty_out(vty, "-----------------------------------------------------%s",
+                VTY_NEWLINE);
+        vty_out(vty, "Port         VLAN        Mode       Status%s",
+                VTY_NEWLINE);
+        vty_out(vty, "-----------------------------------------------------%s",
+                VTY_NEWLINE);
+    }
+}
+
+const struct ovsrec_interface *
+interface_lookup(const char *port)
+{
+    const struct ovsrec_interface *intf_row = NULL;
+    OVSREC_INTERFACE_FOR_EACH (intf_row, idl) {
+        if (strcmp(port, intf_row->name) == 0) {
+            return intf_row;
+        }
+    }
+    return NULL;
+}
+
+int
+cli_show_access_ports (struct cmd_element *self, struct vty *vty)
+{
+    const struct ovsrec_interface *if_row = NULL;
+    const struct ovsrec_port *port_row = NULL;
+    struct shash sorted_interfaces;
+    const struct shash_node **access_ports;
+    int access_port_count = 0;
+
+    shash_init(&sorted_interfaces);
+    OVSREC_PORT_FOR_EACH(port_row, idl) {
+        if(port_row->vlan_mode != NULL && strcmp(port_row->vlan_mode,"access") == 0) {
+           shash_add(&sorted_interfaces, port_row->name, (void *)port_row);
+        }
+    }
+
+    access_ports = sort_interface(&sorted_interfaces);
+    access_port_count = shash_count(&sorted_interfaces);
+
+    if (access_port_count > 0)
+    {
+        show_header(SHOW_INTERFACE_ACCESS_HEADER);
+        for(int id = 0; id < access_port_count; id++)
+        {
+            port_row = (const struct ovsrec_port *) access_ports[id]->data;
+            if (port_row->name != NULL)
+                vty_out(vty, " %s  ", port_row->name);
+
+            if (port_row->tag != NULL)
+                vty_out(vty, "\t       %" PRId64, *port_row->tag);
+
+            if (port_row->vlan_mode != NULL)
+                vty_out(vty, "\t  %s", port_row->vlan_mode);
+
+            if_row = interface_lookup (port_row->name);
+            if (if_row != NULL)
+                vty_out(vty, "    %s%s", if_row->link_state, VTY_NEWLINE);
+        }
+        vty_out(vty, "%s", VTY_NEWLINE);
+    }
+
+    shash_destroy(&sorted_interfaces);
+    free(access_ports);
+
+    return CMD_SUCCESS;
+}
+
+int
+cli_show_trunk_ports (struct cmd_element *self, struct vty *vty)
+{
+    const struct ovsrec_interface *if_row = NULL;
+    const struct ovsrec_port *port_row = NULL;
+    struct shash sorted_interfaces;
+    const struct shash_node **trunk_ports;
+    int trunk_port_count = 0;
+
+    shash_init(&sorted_interfaces);
+    OVSREC_PORT_FOR_EACH(port_row, idl) {
+        if(port_row->vlan_mode != NULL && strcmp(port_row->vlan_mode,"access") != 0) {
+           shash_add(&sorted_interfaces,port_row->name, (void *)port_row);
+        }
+    }
+
+    trunk_ports = sort_interface(&sorted_interfaces);
+    trunk_port_count = shash_count(&sorted_interfaces);
+
+    if (trunk_port_count > 0)
+    {
+        show_header(SHOW_INTERFACE_TRUNK_HEADER);
+        for(int id = 0; id < trunk_port_count; id++)
+        {
+            port_row = (const struct ovsrec_port *) trunk_ports[id]->data;
+
+            if (port_row->name != NULL)
+                vty_out(vty, " %s ", port_row->name);
+
+            if (port_row->tag != NULL)
+                vty_out(vty, "\t     %" PRId64, *port_row->tag);
+
+            if (port_row->vlan_mode != NULL)
+                vty_out(vty, "\t\t   %s", port_row->vlan_mode);
+
+            if_row = interface_lookup (port_row->name);
+            if (if_row != NULL)
+                vty_out(vty, "\t%s%s", if_row->link_state, VTY_NEWLINE);
+        }
+
+        show_header(SHOW_INTERFACE_TRUNK_ALLOWED_HEADER);
+        for(int id = 0; id < trunk_port_count; id++)
+        {
+            port_row = (const struct ovsrec_port *) trunk_ports[id]->data;
+            vty_out(vty, " %s \t\t", port_row->name);
+            for (int i = 0; i < port_row->n_trunks; i++) {
+                 vty_out(vty, "%" PRId64 ", ", port_row->trunks[i]);
+            }
+            vty_out(vty, "%s", VTY_NEWLINE);
+        }
+        vty_out(vty, "%s", VTY_NEWLINE);
+    }
+
+    shash_destroy(&sorted_interfaces);
+    free(trunk_ports);
+
+    return CMD_SUCCESS;
+}
+
 DEFUN (cli_intf_show_intferface_ifname_br,
         cli_intf_show_intferface_ifname_br_cmd,
-        "show interface {brief|transceiver|queues}",
+        "show interface {brief|transceiver|queues|access|trunk}",
         SHOW_STR
         INTERFACE_STR
         "Show brief info of interfaces\n"
         "Show transceiver info for interfaces\n"
-        "Show tx queue info for interfaces\n")
+        "Show tx queue info for interfaces\n"
+        "Show access port info\n"
+        "Show trunk port info\n")
 {
     bool brief = false;
     bool transceiver = false;
@@ -3674,14 +3835,21 @@ DEFUN (cli_intf_show_intferface_ifname_br,
     {
         brief = true;
     }
-    if ((NULL != argv[1]) && (strcmp(argv[1], "transceiver") == 0))
+    else if ((NULL != argv[1]) && (strcmp(argv[1], "transceiver") == 0))
     {
         transceiver = true;
     }
-
-    if ((NULL != argv[2]) && (strcmp(argv[2], "queues") == 0))
+    else if ((NULL != argv[2]) && (strcmp(argv[2], "queues") == 0))
     {
         return (cli_show_interface_queue_stats (self, vty, argc, argv));
+    }
+    else if ((NULL != argv[3]) && (strcmp(argv[3], "access") == 0))
+    {
+        return (cli_show_access_ports (self, vty));
+    }
+    else if ((NULL != argv[4]) && (strcmp(argv[4], "trunk") == 0))
+    {
+        return (cli_show_trunk_ports (self, vty));
     }
 
     argv[0] = NULL;
