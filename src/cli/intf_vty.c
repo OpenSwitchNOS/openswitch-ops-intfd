@@ -3191,7 +3191,10 @@ DEFUN (vtysh_interface,
 {
     static char ifnumber[MAX_IFNAME_LENGTH];
     const struct ovsrec_interface *if_row = NULL;
+    const struct ovsrec_vlan *vlan_row = NULL;
     uint16_t flag = 1;
+    bool vlan_found = false;
+    int vlan_id;
     unsigned int parent_if_number;
     unsigned int split_child_id;
 
@@ -3228,10 +3231,25 @@ DEFUN (vtysh_interface,
         vty->node = INTERFACE_NODE;
     }
 
-    if (VERIFY_VLAN_IFNAME(argv[0]) == 0)
+    if (verify_ifname((char *)argv[0]))
     {
         vty->node = VLAN_INTERFACE_NODE;
         GET_VLANIF(ifnumber, argv[0]);
+        vlan_id = atoi(argv[0] + 4);
+            OVSREC_VLAN_FOR_EACH(vlan_row, idl)
+            {
+                if (vlan_row->id == vlan_id)
+                {
+                    vlan_found = true;
+                    break;
+                }
+            }
+        if (!vlan_found) {
+            vty_out(vty, "VLAN %d should be created before creating "
+                    "interface VLAN%d.%s",vlan_id, vlan_id, VTY_NEWLINE);
+            vty->node = CONFIG_NODE;
+            return CMD_ERR_NOTHING_TODO;
+        }
         if (create_vlan_interface(ifnumber) == CMD_OVSDB_FAILURE)
         {
             return CMD_OVSDB_FAILURE;
