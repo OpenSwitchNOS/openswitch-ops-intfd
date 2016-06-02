@@ -1266,14 +1266,14 @@ parse_vlan(const char *if_name, struct vty* vty)
     else if (strcmp(port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_ACCESS) == 0)
     {
         vty_out(vty, "%3s%s%ld%s", "", "vlan access ",
-                *port_row->tag, VTY_NEWLINE);
+                (int64_t)ops_port_get_tag(port_row), VTY_NEWLINE);
     }
     else if (strcmp(port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_TRUNK) == 0)
     {
         for (i = 0; i < port_row->n_trunks; i++)
         {
             vty_out(vty, "%3s%s%ld%s", "", "vlan trunk allowed ",
-                    port_row->trunks[i], VTY_NEWLINE);
+                    (int64_t)ops_port_get_trunks(port_row, i), VTY_NEWLINE);
         }
     }
     else if (strcmp(port_row->vlan_mode,
@@ -1282,12 +1282,12 @@ parse_vlan(const char *if_name, struct vty* vty)
         if (port_row->n_tag == 1)
         {
             vty_out(vty, "%3s%s%ld%s", "", "vlan trunk native ",
-                    *port_row->tag, VTY_NEWLINE);
+                    (int64_t)ops_port_get_tag(port_row), VTY_NEWLINE);
         }
         for (i = 0; i < port_row->n_trunks; i++)
         {
             vty_out(vty, "%3s%s%ld%s", "", "vlan trunk allowed ",
-                    port_row->trunks[i], VTY_NEWLINE);
+                    (int64_t)ops_port_get_trunks(port_row, i), VTY_NEWLINE);
         }
     }
     else if (strcmp(port_row->vlan_mode,
@@ -1296,13 +1296,13 @@ parse_vlan(const char *if_name, struct vty* vty)
         if (port_row->n_tag == 1)
         {
             vty_out(vty, "%3s%s%ld%s", "", "vlan trunk native ",
-                    *port_row->tag, VTY_NEWLINE);
+                    (int64_t)ops_port_get_tag(port_row), VTY_NEWLINE);
         }
         vty_out(vty, "%3s%s%s", "", "vlan trunk native tag",VTY_NEWLINE);
         for (i = 0; i < port_row->n_trunks; i++)
         {
             vty_out(vty, "%3s%s%ld%s", "", "vlan trunk allowed ",
-                    port_row->trunks[i], VTY_NEWLINE);
+                    (int64_t)ops_port_get_trunks(port_row, i), VTY_NEWLINE);
         }
     }
 
@@ -2306,7 +2306,7 @@ show_lacp_interfaces_brief (struct vty *vty, const char *argv[])
         vty_out(vty, " %-15s ", lag_port->name);
         /* Display vid for an lag interface */
         if (lag_port->tag != NULL ) {
-            vty_out(vty, "%-8ld", *lag_port->tag); /*vid */
+            vty_out(vty, "%-8ld", (int64_t)ops_port_get_tag(lag_port)); /*vid */
         }
         else {
             vty_out(vty, "--      "); /*vid */
@@ -2712,7 +2712,7 @@ show_interface_status(struct vty *vty, const const struct ovsrec_interface *ifro
         }
         /* Display vlan mode and vid for an l2 interface */
         else if (port_row->tag != NULL && port_row->vlan_mode != NULL) {
-            vty_out(vty, "%-8ld", *port_row->tag); /*vid */
+            vty_out(vty, "%-8ld", (int64_t)ops_port_get_tag(port_row)); /*vid */
             vty_out(vty, "eth  "); /*type */
             if (strncmp(port_row->vlan_mode, OVSREC_PORT_VLAN_MODE_ACCESS,
                         strlen(OVSREC_PORT_VLAN_MODE_ACCESS)) == 0){
