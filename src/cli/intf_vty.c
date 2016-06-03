@@ -1735,6 +1735,16 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
             vty_out(vty, "   no shutdown %s", VTY_NEWLINE);
         }
 
+        if(row->n_subintf_parent)
+        {
+           int vlan_tag = row->key_subintf_parent[0];
+           if (0 != vlan_tag)
+           {
+               PRINT_INT_HEADER_IN_SHOW_RUN;
+               vty_out(vty, "   encapsulation dot1Q %d %s", vlan_tag, VTY_NEWLINE);
+           }
+        }
+
         cur_state = smap_get(&row->user_config,
                 INTERFACE_USER_CONFIG_MAP_SPEEDS);
         if ((NULL != cur_state)
