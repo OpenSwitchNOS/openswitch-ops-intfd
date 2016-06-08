@@ -62,15 +62,19 @@ def sw_set_intf_pm_info(dut, int, conf):
 '''
 sort in alphanumeric order
 '''
+
+
 def alphanumeric_sort(l):
     convert = lambda text: int(text) if text.isdigit() else text
-    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ]
-    return sorted(l, key = alphanum_key)
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    return sorted(l, key=alphanum_key)
 
 
 '''
 create or enable some physical and logical interfaces
 '''
+
+
 def create_enable_interfaces(sw):
 
     sw("configure terminal")
@@ -304,12 +308,14 @@ def test_user_configuration(topology, step):
     sw_clear_user_config(ops1, test_intf)
     short_sleep()
 
-    step("Step 23- Display error message for show interface <child-intf> when parent is not split")
+    step("Step 23- Display error message for show interface <child-intf>"
+         "when parent is not split")
     out = ops1("show interface 52-1")
     assert "Parent interface of 52-1 is not split" in out
     short_sleep()
 
-    step("Step 24- Display error message for show interface <parent-intf> when parent-intf is split")
+    step("Step 24- Display error message for show interface <parent-intf>"
+         "when parent-intf is split")
     # please don't clean this interface, this is being used in Step 25
     ops1("configure terminal")
     ops1("interface 50")
@@ -326,7 +332,8 @@ def test_user_configuration(topology, step):
     assert "Interface 50 is split" in out
     short_sleep()
 
-    step("Step 25- Verify show running-config and show running-config interface output is in alphanumeric sorted manner")
+    step("Step 25- Verify show running-config and show running-config"
+         "interface output is in alphanumeric sorted manner")
 
     create_enable_interfaces(ops1)
 
@@ -345,12 +352,14 @@ def test_user_configuration(topology, step):
            interfaces == alphanumeric_sort(interfaces)
     short_sleep()
 
-    step("Step 26- Verify that the default admin status of an interface is down")
+    step("Step 26- Verify that the default admin status of"
+         "an interface is down")
     out = ops1("show interface 32")
     assert 'Admin state is down' in out
     short_sleep()
 
-    step("Step 27- Verify that the admin state is changed when interface is 'shutdown' and 'no shutdown'")
+    step("Step 27- Verify that the admin state is changed"
+         "when interface is 'shutdown' and 'no shutdown'")
     ops1("configure terminal")
     ops1("interface 1")
     ops1("no shutdown")
@@ -362,7 +371,8 @@ def test_user_configuration(topology, step):
     assert 'Admin state is down' in out and 'Interface 1 is down' in out
     ops1("end")
 
-    step("Step 28- Verify that user not able to configure default interface bridge_normal")
+    step("Step 28- Verify that user not able "
+         "to configure default interface bridge_normal")
     ops1("configure terminal")
     out = ops1("interface bridge_normal")
     assert 'Configuration of bridge_normal (default) not allowed' in out
