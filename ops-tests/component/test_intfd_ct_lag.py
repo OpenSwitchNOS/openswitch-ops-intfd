@@ -30,6 +30,7 @@ TOPOLOGY = """
 # Links
 """
 
+
 def test_show_running_config_lag_interface(topology, step):
     ops1 = topology.get('ops1')
 
