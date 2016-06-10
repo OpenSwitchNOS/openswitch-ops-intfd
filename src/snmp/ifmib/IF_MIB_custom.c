@@ -10,7 +10,7 @@
 #include <net-snmp/net-snmp-includes.h>
 #include <net-snmp/agent/net-snmp-agent-includes.h>
 
-
+VLOG_DEFINE_THIS_MODULE (ifmib_custom_snmp);
 static char *interface_statistics_keys [] = {
         "rx_packets",
         "rx_bytes",
@@ -54,11 +54,6 @@ void ifTableifIndex_custom_function(const struct ovsdb_idl *idl,
 }
 
 
-void ifMtu_custom_function(const struct ovsdb_idl *idl,
-                           const struct ovsrec_interface *interface_row,
-                           long* ifMtu_val_ptr){
-    *ifMtu_val_ptr = (long) interface_row->mtu;
-}
 
 void ifAdminStatus_custom_function(const struct ovsdb_idl *idl,
                                    const struct ovsrec_interface *interface_row,
