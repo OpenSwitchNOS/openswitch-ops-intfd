@@ -29,7 +29,7 @@ void ifType_custom_function(const struct ovsdb_idl *idl,
 
 void ifMtu_custom_function(const struct ovsdb_idl *idl,
                            const struct ovsrec_interface *interface_row,
-                           long* ifMtu_val_ptr);
+                           long *ifMtu_val_ptr);
 
 void ifPhysAddress_custom_function(
     const struct ovsdb_idl *idl,

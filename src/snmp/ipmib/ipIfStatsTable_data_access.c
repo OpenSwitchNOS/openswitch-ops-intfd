@@ -105,6 +105,10 @@ int ipIfStatsTable_container_load(netsnmp_container *container) {
     }
 
     OVSREC_PORT_FOR_EACH(port_row, idl) {
+        if(port_row->interfaces == NULL || portTable_skip_function(idl, port_row)) {
+            continue;
+        }
+
         if(portTable_inetv4(idl, port_row, &ipIfStatsIfIndex)){
             ipIfStatsIPVersion = 1;
 

@@ -7,6 +7,10 @@
 #include <net-snmp/agent/net-snmp-agent-includes.h>
 #include "vswitch-idl.h"
 
+
+int portTable_skip_function(const struct ovsdb_idl *idl,
+                          const struct ovsrec_port *port_row);
+
 int portTable_inetv4(struct ovsdb_idl *idl, const struct ovsrec_port *port_row,
                      long *ifIndex);
 

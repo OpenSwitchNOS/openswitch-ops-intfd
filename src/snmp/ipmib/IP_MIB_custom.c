@@ -8,6 +8,15 @@
 #include "vswitch-idl.h"
 #include "IP_MIB_custom.h"
 
+
+int portTable_skip_function(const struct ovsdb_idl *idl,
+                          const struct ovsrec_port *port_row) {
+    if (atoi(port_row->name) == 0)
+        return 1;
+    return 0;
+}
+
+
 int portTable_inetv4(struct ovsdb_idl *idl, const struct ovsrec_port *port_row,
                      long *ifIndex){
     int ret = 0;
@@ -62,11 +71,11 @@ unsigned long long ipIfStatsInReceives_custom_function_v4(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_uc_rx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_mc_rx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -81,11 +90,11 @@ unsigned long long ipIfStatsInOctets_custom_function_v4(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_uc_rx_bytes") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_mc_rx_bytes") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -100,11 +109,11 @@ unsigned long long ipIfStatsOutTransmits_custom_function_v4(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_uc_tx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_mc_tx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -119,11 +128,11 @@ unsigned long long ipIfStatsOutOctets_custom_function_v4(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_uc_tx_bytes") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_mc_tx_bytes") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -138,7 +147,7 @@ unsigned long long ipIfStatsInMcastPkts_custom_function_v4(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_mc_rx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -153,7 +162,7 @@ unsigned long long ipIfStatsInMcastOctets_custom_function_v4(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_mc_rx_bytes") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -168,7 +177,7 @@ unsigned long long ipIfStatsOutMcastPkts_custom_function_v4(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_mc_tx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -183,7 +192,7 @@ unsigned long long ipIfStatsOutMcastOctets_custom_function_v4(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv4_mc_tx_bytes") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -198,11 +207,11 @@ unsigned long long ipIfStatsInReceives_custom_function_v6(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_uc_rx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_mc_rx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -217,11 +226,11 @@ unsigned long long ipIfStatsInOctets_custom_function_v6(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_uc_rx_bytes") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_mc_rx_bytes") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -236,11 +245,11 @@ unsigned long long ipIfStatsOutTransmits_custom_function_v6(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_uc_tx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_mc_tx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -255,11 +264,11 @@ unsigned long long ipIfStatsOutOctets_custom_function_v6(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_uc_tx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_mc_tx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -274,7 +283,7 @@ unsigned long long ipIfStatsInMcastPkts_custom_function_v6(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_mc_rx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -289,7 +298,7 @@ unsigned long long ipIfStatsInMcastOctets_custom_function_v6(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_mc_rx_bytes") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -304,7 +313,7 @@ unsigned long long ipIfStatsOutMcastPkts_custom_function_v6(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_mc_tx_packets") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
@@ -319,7 +328,7 @@ unsigned long long ipIfStatsOutMcastOctets_custom_function_v6(
     for(i = 0;i < interface_row->n_statistics;i++){
         if(strcmp(*(interface_row->key_statistics + i),
                   "ipv6_mc_tx_bytes") == 0){
-            ret += *(interface_row->value_statistics);
+            ret += *(interface_row->value_statistics + i);
         }
     }
 
