@@ -5,11 +5,14 @@
 #include "IF_MIB_custom.h"
 #include "ifTable_ovsdb_get.h"
 
+VLOG_DEFINE_THIS_MODULE (ifmib_snmp);
+
 void ifTable_ovsdb_idl_init(struct ovsdb_idl *idl) {
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_statistics);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_hw_intf_info);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_mac_in_use);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_admin_state);
+    ovsdb_idl_add_column(idl, &ovsrec_interface_col_user_config);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_mtu);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_name);
 }
@@ -36,7 +39,15 @@ void ovsdb_get_ifType(struct ovsdb_idl *idl,
 void ovsdb_get_ifMtu(struct ovsdb_idl *idl,
                      const struct ovsrec_interface *interface_row,
                      long *ifMtu_val_ptr) {
-    ifMtu_custom_function(idl, interface_row, ifMtu_val_ptr);
+    const struct ovsdb_datum *datum;
+
+    datum = ovsrec_interface_get_mtu(interface_row, OVSDB_TYPE_INTEGER);
+    if ((NULL!=datum) && (datum->n >0)) {
+        *ifMtu_val_ptr = (long)datum->keys[0].integer;
+    }
+    else {
+        *ifMtu_val_ptr = 0;
+    }
 }
 
 void ovsdb_get_ifSpeed(struct ovsdb_idl *idl,

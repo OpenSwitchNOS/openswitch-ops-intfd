@@ -37,7 +37,7 @@
 				"Type": {
 					"Key": null
 				},
-				"CustomFunction": "ifMtu_custom_function"
+				"CustomFunction": null
 			},
 			"ifSpeed": {
 				"OvsTable": "interface",
