@@ -2492,7 +2492,7 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
 
     // Array to keep the statistics for each lag while adding the
     // stats for each interface in the lag.
-    unsigned int lag_statistics [12] = {0};
+    uint64_t lag_statistics [12] = {0};
 
     // Aggregation-key variables
     size_t aggr_key_len = 6;
@@ -2532,7 +2532,7 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
                                 OVSDB_TYPE_STRING, OVSDB_TYPE_INTEGER);
 
             // Adding statistic value for each interface in the lag
-            for (stat_index = 0; stat_index < sizeof(lag_statistics)/sizeof(int); stat_index++)
+            for (stat_index = 0; stat_index < sizeof(lag_statistics)/sizeof(int64_t); stat_index++)
             {
                 atom.string = interface_statistics_keys[stat_index];
                 index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
@@ -2580,27 +2580,27 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
         qos_dscp_port_show(lag_port, lag_port->name);
 
         vty_out(vty, " RX%s", VTY_NEWLINE);
-        vty_out(vty, "   %10d input packets  ", lag_statistics[0]);
-        vty_out(vty, "   %10d bytes  ",lag_statistics[1]);
+        vty_out(vty, "   %10lu input packets  ", lag_statistics[0]);
+        vty_out(vty, "   %10lu bytes  ",lag_statistics[1]);
         vty_out(vty, "%s", VTY_NEWLINE);
 
-        vty_out(vty, "   %10d input error    ",lag_statistics[8]);
-        vty_out(vty, "   %10d dropped  ",lag_statistics[4]);
+        vty_out(vty, "   %10lu input error    ",lag_statistics[8]);
+        vty_out(vty, "   %10lu dropped  ",lag_statistics[4]);
         vty_out(vty, "%s", VTY_NEWLINE);
 
-        vty_out(vty, "   %10d CRC/FCS  ",lag_statistics[7]);
+        vty_out(vty, "   %10lu CRC/FCS  ",lag_statistics[7]);
         vty_out(vty, "%s", VTY_NEWLINE);
         vty_out(vty, " TX%s", VTY_NEWLINE);
 
-        vty_out(vty, "   %10d output packets ",lag_statistics[2]);
-        vty_out(vty, "   %10d bytes  ",lag_statistics[3]);
+        vty_out(vty, "   %10lu output packets ",lag_statistics[2]);
+        vty_out(vty, "   %10lu bytes  ",lag_statistics[3]);
         vty_out(vty, "%s", VTY_NEWLINE);
 
-        vty_out(vty, "   %10d input error    ",lag_statistics[11]);
-        vty_out(vty, "   %10d dropped  ",lag_statistics[9]);
+        vty_out(vty, "   %10lu input error    ",lag_statistics[11]);
+        vty_out(vty, "   %10lu dropped  ",lag_statistics[9]);
         vty_out(vty, "%s", VTY_NEWLINE);
 
-        vty_out(vty, "   %10d collision  ",lag_statistics[10]);
+        vty_out(vty, "   %10lu collision  ",lag_statistics[10]);
         vty_out(vty, "%s", VTY_NEWLINE);
     }
 
