@@ -39,16 +39,16 @@ def test_show_interface_lag_(topology, step):
     step("Test show interface lag command")
     with ops1.libs.vtysh.ConfigInterfaceLag("1") as ctx:
         ctx.ip_address("10.1.1.1/24")
-        ctx.ip_address_secondary("10.1.1.2/24")
+        ctx.ip_address_secondary("10.1.2.2/24")
         ctx.ipv6_address("2001::1/12")
-        ctx.ipv6_address_secondary("2001::2/12")
+        ctx.ipv6_address_secondary("3001::2/12")
 
     output = ops1.libs.vtysh.show_interface("lag1")
     assert output['ipv4'] == '10.1.1.1/24',\
         "LAG IP address is not properly configured - Failed"
-    assert output['ipv4_secondary'] == '10.1.1.2/24',\
+    assert output['ipv4_secondary'] == '10.1.2.2/24',\
         "LAG IP secondary address is not properly configured - Failed"
     assert output['ipv6'] == '2001::1/12',\
         "LAG IPv6 address is not properly configured - Failed"
-    assert output['ipv6_secondary'] == '2001::2/12',\
+    assert output['ipv6_secondary'] == '3001::2/12',\
         "LAG IPv6 secondary address is not properly configured - Failed"
