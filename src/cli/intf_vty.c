@@ -3041,7 +3041,9 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
             show_interface_status(vty, ifrow, internal_if, brief);
 
-            if (strcmp(OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN, ifrow->link_state) == 0 ){
+            if ((NULL == ifrow->link_state) ||
+                (strcmp(OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN, ifrow->link_state) == 0) )
+            {
                 user_config_speed = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_SPEEDS);
                 if (user_config_speed != NULL) {
                     vty_out(vty,"%-6s", user_config_speed);
