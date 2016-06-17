@@ -440,7 +440,12 @@ intfd_arbiter_layer_aggregation_register(
     struct intfd_arbiter_proto_class *proto, *proto_head = NULL;
 
     /* Define and register the aggregation layer */
-    aggregation = calloc(1, sizeof(struct intfd_arbiter_layer_class));
+    aggregation = xzalloc(sizeof(struct intfd_arbiter_layer_class));
+    if (aggregation == NULL) {
+        VLOG_ERR("Failed to register aggregation layer - "
+                 "Memory allocation failed.");
+        return;
+    }
     aggregation->id = INTERFACE_FORWARDING_STATE_LAYER_AGGREGATION;
     aggregation->owner = INTERFACE_FORWARDING_STATE_PROTO_NONE;
     aggregation->run = intfd_arbiter_layer_run;
@@ -452,7 +457,12 @@ intfd_arbiter_layer_aggregation_register(
      * ones following it. */
 
     /* Register LACP */
-    proto = calloc(1, sizeof(struct intfd_arbiter_proto_class));
+    proto = xzalloc(sizeof(struct intfd_arbiter_proto_class));
+    if (proto == NULL) {
+        VLOG_ERR("Failed to register proto class for aggregation layer - "
+                 "Memory allocation failed.");
+        return;
+    }
     proto->id = INTERFACE_FORWARDING_STATE_PROTO_LACP;
     proto->run = intfd_arbiter_proto_run;
     proto->get_state = intfd_arbiter_lacp_state;
