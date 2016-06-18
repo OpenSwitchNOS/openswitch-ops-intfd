@@ -30,6 +30,8 @@
 #define INTERFACE_USER_CONFIG_MAP_SPEEDS_DEFAULT                "auto"
 #define VLAN_MODE_ROUTED                                        "routed"
 
+#include "ops-utils.h"
+
 void cli_pre_init(void);
 void cli_post_init(void);
 void dyncb_helpstr_speeds(struct cmd_token *token, struct vty *vty, \
