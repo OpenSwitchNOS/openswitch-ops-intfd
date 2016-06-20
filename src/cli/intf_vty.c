@@ -3231,6 +3231,10 @@ DEFUN (vtysh_interface,
         vty_out (vty, "Configuration of %s (default) not allowed.%s",
                        argv[0],VTY_NEWLINE);
         return CMD_ERR_NOTHING_TODO;
+    } else if (strncmp(argv[0], "lag", 3) == 0) {
+        vty_out (vty, "Unknown interface %s. %s",
+                 argv[0], VTY_NEWLINE);
+        return CMD_ERR_NOTHING_TODO;
     }
 
     /* check if a split child interface can be configured */
