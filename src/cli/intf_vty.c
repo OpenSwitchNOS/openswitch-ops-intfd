@@ -60,6 +60,7 @@ extern struct ovsdb_idl *idl;
 extern int
 create_sub_interface(const char* subifname);
 #define INTF_NAME_SIZE 50
+#define IPV6_LENGTH 4
 
 static struct cmd_node interface_node =
    {
@@ -3821,6 +3822,74 @@ show_ip_stats(struct vty *vty, bool isIpv6, const struct ovsdb_datum *datum)
     vty_out(vty, "%s", VTY_NEWLINE);
 }
 
+static void cli_show_ip_lag(const char *if_name, struct vty *vty, const char *argv[])
+{
+    const struct ovsrec_port *port_row = NULL;
+    bool isIpv6 = false;
+    int i;
+    bool forwarding_state;
+    bool port_aggregation_forwarding;
+
+    if(!strncmp(argv[0], "ipv6", IPV6_LENGTH)) {
+        isIpv6 = true;
+    }
+
+    OVSREC_PORT_FOR_EACH(port_row, idl) {
+        if (if_name &&
+            strncmp(port_row->name, if_name, INTF_NAME_SIZE) == 0 &&
+            strncmp(port_row->name, LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) == 0) {
+            if (!check_port_in_vrf(port_row->name)) {
+                vty_out (vty, "Interface %s is not L3.%s", if_name, VTY_NEWLINE);
+                break;
+            }
+            else {
+                vty_out (vty, "Aggregate-name %s %s", port_row->name, VTY_NEWLINE);
+
+                forwarding_state = smap_get_bool(&port_row->forwarding_state,
+                                                 PORT_FORWARDING_STATE_MAP_FORWARDING,
+                                                 false);
+                vty_out (vty, "Forwarding State : %s %s",
+                         forwarding_state? "forwarding":"not forwarding", VTY_NEWLINE);
+
+                port_aggregation_forwarding =
+                        smap_get_bool(&port_row->forwarding_state,
+                                      PORT_FORWARDING_STATE_MAP_PORT_AGGREGATION_FORWARDING,
+                                      false);
+                vty_out (vty, "Port aggregation forwarding : %s %s",
+                         port_aggregation_forwarding? "forwarding":"not forwarding",
+                         VTY_NEWLINE);
+
+                /* Displaying primary and secondary addresses*/
+                if(isIpv6)
+                {
+                    if (port_row->ip6_address) {
+                        vty_out(vty, "IPv6 address %s%s", port_row->ip6_address,
+                                VTY_NEWLINE);
+                    }
+                    for (i = 0; i < port_row->n_ip6_address_secondary; i++) {
+                        vty_out(vty, "IPv6 address %s secondary%s",
+                                port_row->ip6_address_secondary[i],
+                                VTY_NEWLINE);
+                    }
+
+                }
+                else
+                {
+                    if (port_row->ip4_address) {
+                        vty_out(vty, "IPv4 address %s%s", port_row->ip4_address,
+                                VTY_NEWLINE);
+                    }
+                    for (i = 0; i < port_row->n_ip4_address_secondary; i++) {
+                        vty_out(vty, "IPv4 address %s secondary%s",
+                                port_row->ip4_address_secondary[i],
+                                VTY_NEWLINE);
+                    }
+                }
+            }
+        }
+    }
+}
+
 static int
 cli_show_ip_interface_exec(const char *argv[], int argc,
                            struct vty *vty)
@@ -3958,6 +4027,10 @@ cli_show_ip_interface_exec(const char *argv[], int argc,
             break;
         }
     }
+    //Check if this is a LAG interface
+    if (idx == count) {
+        cli_show_ip_lag(if_name, vty, argv);
+    }
 
     return 0;
 }
@@ -4013,6 +4086,12 @@ intf_ovsdb_init(void)
     ovsdb_idl_add_table(idl, &ovsrec_table_port);
     ovsdb_idl_add_column(idl, &ovsrec_port_col_name);
     ovsdb_idl_add_column(idl, &ovsrec_port_col_qos_status);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_forwarding_state);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_ip4_address);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_ip4_address_secondary);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_ip6_address);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_ip6_address_secondary);
+
     return;
 }
 
