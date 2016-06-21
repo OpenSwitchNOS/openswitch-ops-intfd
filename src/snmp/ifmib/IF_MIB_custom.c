@@ -126,7 +126,7 @@ void ifPhysAddress_custom_function(const struct ovsdb_idl *idl,
         hexbyte[0] = key[d] ;
         hexbyte[1] = key[d+1] ;
 
-        sscanf( hexbyte, "%X", &octets[d/3] ) ;
+        sscanf( hexbyte, "%2X", &octets[d/3] ) ;
 
         hexstg[i++] = octets[d/3];
     }
