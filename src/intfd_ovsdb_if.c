@@ -290,6 +290,9 @@ get_connector_flags(enum ovsrec_interface_pm_info_connector_e connector)
     case INTERFACE_PM_INFO_CONNECTOR_QSFP28_SR4:
     case INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4:
     case INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4:
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_CLR4:
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_PSM4:
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_CWDM4:
         return PM_QSFP28_100G_FLAGS;
         break;
     case INTERFACE_PM_INFO_CONNECTOR_ABSENT:
@@ -298,9 +301,6 @@ get_connector_flags(enum ovsrec_interface_pm_info_connector_e connector)
     case INTERFACE_PM_INFO_CONNECTOR_SFP_CX:
     case INTERFACE_PM_INFO_CONNECTOR_SFP_FC:
     case INTERFACE_PM_INFO_CONNECTOR_SFP_LRM:
-    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_PSM4:
-    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_CWDM4:
-    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_CLR4:
     default:
         return PM_UNSUPPORTED_FLAG;
         break;
@@ -352,6 +352,15 @@ get_connector_if_type(enum ovsrec_interface_pm_info_connector_e connector)
         break;
     case INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4:
         return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_100GBASE_LR4;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_CLR4:
+        return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_100GBASE_CLR4;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_PSM4:
+        return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_100GBASE_PSM4;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_QSFP28_CWDM4:
+        return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_100GBASE_CWDM4;
         break;
     default:
         return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_UNKNOWN;
@@ -733,7 +742,16 @@ intfd_parse_split_pm_info(struct intf_pm_info *pm_info, const struct smap *ifrow
     }
 
     data = smap_get(ifrow_pm_info, INTERFACE_PM_INFO_MAP_CONNECTOR);
-    if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4))) {
+    if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CWDM4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_LR;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_PSM4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_LR;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CLR4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_LR;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4))) {
         pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_CR;
         //check if 40G DAC is connected; by reading the supported speed
         sup_speed = smap_get(ifrow_pm_info, "supported_speeds");
@@ -741,7 +759,7 @@ intfd_parse_split_pm_info(struct intf_pm_info *pm_info, const struct smap *ifrow
             pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP_DAC;
         }
 
-    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4))) {
+    }  else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4))) {
         pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP28_LR;
 
     } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_SR4))) {
@@ -814,7 +832,16 @@ intfd_parse_pm_info(struct intf_hw_info *hw_info, struct intf_pm_info *pm_info,
     pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_UNKNOWN;
 
     data = smap_get(ifrow_pm_info, INTERFACE_PM_INFO_MAP_CONNECTOR);
-    if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4))) {
+    if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CWDM4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_QSFP28_CWDM4;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_PSM4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_QSFP28_PSM4;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CLR4))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_QSFP28_CLR4;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4))) {
         pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_QSFP28_CR4;
 
     } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_QSFP28_LR4))) {
