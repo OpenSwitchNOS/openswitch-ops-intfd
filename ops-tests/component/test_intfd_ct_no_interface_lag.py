@@ -19,6 +19,8 @@
 OpenSwitch Test for 'no interface lagXX'
 That command should display an error message
 """
+from pytest import mark
+
 
 TOPOLOGY = """
 # +-------+
@@ -32,6 +34,7 @@ TOPOLOGY = """
 """
 
 
+@mark.gate
 def test_no_interface_lagxx(topology):
     # Testing that 'no interface lagXX' shows an error message
     test_lag = '10'

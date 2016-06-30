@@ -19,7 +19,7 @@
 OpenSwitch Test for interface related configurations.
 """
 
-# from pytest import mark
+from pytest import mark
 from time import sleep
 
 TOPOLOGY = """
@@ -39,6 +39,7 @@ ops1:if04
 """
 
 
+@mark.gate
 def test_intfd_ct_admin_state(topology, step):
     ops1 = topology.get("ops1")
     assert ops1 is not None

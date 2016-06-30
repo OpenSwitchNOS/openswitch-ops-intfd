@@ -19,7 +19,7 @@
 OpenSwitch Test for interface related configurations.
 """
 
-# from pytest import mark
+from pytest import mark
 from time import sleep
 import re
 
@@ -138,6 +138,7 @@ def short_sleep(tm=.5):
     sleep(tm)
 
 
+@mark.gate
 def test_user_configuration(topology, step):
     ops1 = topology.get("ops1")
     assert ops1 is not None

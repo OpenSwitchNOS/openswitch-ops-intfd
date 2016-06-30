@@ -22,6 +22,8 @@
 #
 ##########################################################################
 
+from pytest import mark
+
 
 TOPOLOGY = """
 #
@@ -40,6 +42,7 @@ TOPOLOGY = """
 """
 
 
+@mark.gate
 def test_lacp_split_interface(topology, step):
     sw1 = topology.get('sw1')
 

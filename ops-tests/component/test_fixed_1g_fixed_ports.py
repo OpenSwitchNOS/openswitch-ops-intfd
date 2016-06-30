@@ -19,7 +19,7 @@
 OpenSwitch Test for interface related configurations.
 """
 
-# from pytest import mark
+from pytest import mark
 from time import sleep
 TOPOLOGY = """
 # +-------+
@@ -73,6 +73,7 @@ def short_sleep(tm=.5):
     sleep(tm)
 
 
+@mark.gate
 def test_fixed_1g_fixed_ports(topology, step):
     ops1 = topology.get("ops1")
     assert ops1 is not None

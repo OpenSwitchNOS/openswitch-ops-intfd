@@ -18,6 +18,7 @@
 """
 OpenSwitch Test for LAG interface related configuration
 """
+from pytest import mark
 
 TOPOLOGY = """
 # +-------+
@@ -31,6 +32,7 @@ TOPOLOGY = """
 """
 
 
+@mark.gate
 def test_show_interface_lag_(topology, step):
     ops1 = topology.get('ops1')
 
