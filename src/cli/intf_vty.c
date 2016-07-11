@@ -3993,6 +3993,74 @@ DEFUN (cli_intf_show_ip_intferface,
     return CMD_SUCCESS;
 }
 
+DEFUN (cli_intf_clear_stats,
+        cli_intf_clear_stats_cmd,
+        "clear interface (all|IFNAME) statistics",
+        CLEAR_STR
+        INTERFACE_STR
+        "all interfaces\n"
+        IFNAME_STR
+        "Clear all/specified interface statistics\n")
+{
+    const struct ovsrec_interface * row      = NULL;
+    struct ovsdb_idl_txn* status_txn         = cli_do_config_start();
+    int64_t clear_requested                  = 0;
+    enum ovsdb_idl_txn_status status;
+
+    if (status_txn == NULL)
+    {
+        VLOG_ERR(OVSDB_TXN_CREATE_ERROR);
+        cli_do_config_abort(status_txn);
+        return CMD_OVSDB_FAILURE;
+    }
+
+    row = ovsrec_interface_first(idl);
+
+    if (!row)
+    {
+        cli_do_config_abort(status_txn);
+        return CMD_OVSDB_FAILURE;
+    }
+
+    if ((NULL != argv[0]) && (strcmp(argv[0], "all") == 0))
+    {
+        OVSREC_INTERFACE_FOR_EACH(row, idl)
+        {
+            clear_requested = (row->intf_statistics_clear_requested) ?
+                               (*(row->intf_statistics_clear_requested)) + 1:
+                               1;
+            ovsrec_interface_set_intf_statistics_clear_requested(row,
+            &clear_requested, 1);
+        }
+    }
+    else
+    {
+        OVSREC_INTERFACE_FOR_EACH(row, idl)
+        {
+            if ((NULL != argv[0]) && (strcmp(row->name, argv[0]) == 0))
+            {
+                clear_requested = (row->intf_statistics_clear_requested) ?
+                                 (*(row->intf_statistics_clear_requested)) + 1:
+                                 1;
+                ovsrec_interface_set_intf_statistics_clear_requested(row,
+                &clear_requested, 1);
+            }
+        }
+    }
+
+    status = cli_do_config_finish (status_txn);
+
+    if (status == TXN_SUCCESS || status == TXN_UNCHANGED)
+    {
+        return CMD_SUCCESS;
+    }
+    else
+    {
+        VLOG_ERR (OVSDB_TXN_COMMIT_ERROR);
+        return CMD_OVSDB_FAILURE;
+    }
+}
+
 /*******************************************************************
  * @func        : tempd_ovsdb_init
  * @detail      : Add interface related table & columns to ops-cli
@@ -4024,6 +4092,8 @@ intf_ovsdb_init(void)
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_error);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_lacp_status);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_subintf_parent);
+    ovsdb_idl_add_column(idl, &ovsrec_interface_col_intf_statistics_clear_requested);
+    ovsdb_idl_add_column(idl, &ovsrec_interface_col_intf_statistics_clear_performed);
     ovsdb_idl_add_table(idl, &ovsrec_table_vrf);
     ovsdb_idl_add_column(idl, &ovsrec_vrf_col_ports);
     ovsdb_idl_add_table(idl, &ovsrec_table_port);
@@ -4100,6 +4170,9 @@ void cli_post_init(void)
 
     install_element (VLAN_INTERFACE_NODE, &cli_intf_shutdown_cmd);
     install_element (VLAN_INTERFACE_NODE, &no_cli_intf_shutdown_cmd);
+
+    /* Clear command */
+    install_element (ENABLE_NODE, &cli_intf_clear_stats_cmd);
 
     return;
 }
