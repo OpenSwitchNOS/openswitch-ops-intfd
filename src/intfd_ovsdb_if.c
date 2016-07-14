@@ -1862,7 +1862,7 @@ remove_interface_from_port(const struct ovsrec_port *port_row)
             VLOG_DBG("deleting interface from port\n");
             intf_row = port_data->interface[j];
             intf = shash_find_data(&all_interfaces, intf_row->name);
-            if (port_parse_admin(&intf->port_admin, intf_row)) {
+            if (intf && port_parse_admin(&intf->port_admin, intf_row)) {
                 VLOG_INFO("Set the new admin state based on the port state\n");
                 intf->user_cfg.admin_state = intf_parse_admin(intf_row);
                 set_interface_config(intf_row, intf);
