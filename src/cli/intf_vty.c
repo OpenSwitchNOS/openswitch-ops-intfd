@@ -3887,6 +3887,14 @@ cli_show_ip_interface_exec(const char *argv[], int argc,
             }
             continue;
         }
+        if (isIpv6)
+        {
+            if(!((port_row->ip6_address)))
+            continue;
+        }
+        else if (!((port_row->ip4_address)))
+            continue;
+
         intVal = 0;
         vty_out(vty, "%s", VTY_NEWLINE);
         internal_if = (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_INTERNAL) == 0) ? true : false;
