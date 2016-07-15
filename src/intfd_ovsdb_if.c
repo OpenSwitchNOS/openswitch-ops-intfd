@@ -148,6 +148,7 @@ char *interface_pm_info_connector_strings[] = {
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_FC,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_LR,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_LRM,
+    OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_ER,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_LX,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_RJ45,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_SR,
@@ -276,6 +277,7 @@ get_connector_flags(enum ovsrec_interface_pm_info_connector_e connector)
     case INTERFACE_PM_INFO_CONNECTOR_SFP_LR:
     case INTERFACE_PM_INFO_CONNECTOR_SFP_LRM:
     case INTERFACE_PM_INFO_CONNECTOR_SFP_DAC:
+    case INTERFACE_PM_INFO_CONNECTOR_SFP_ER:
         return PM_SFP_PLUS_FLAGS;
         break;
     case INTERFACE_PM_INFO_CONNECTOR_SFP28_SR:
@@ -325,6 +327,9 @@ get_connector_if_type(enum ovsrec_interface_pm_info_connector_e connector)
         break;
     case INTERFACE_PM_INFO_CONNECTOR_SFP_LR:
         return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_10GBASE_LR;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_SFP_ER:
+        return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_10GBASE_ER;
         break;
     case INTERFACE_PM_INFO_CONNECTOR_QSFP_CR4:
         return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_40GBASE_CR4;
@@ -855,6 +860,9 @@ intfd_parse_pm_info(struct intf_hw_info *hw_info, struct intf_pm_info *pm_info,
 
     } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_LRM))) {
         pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP_LRM;
+
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_ER))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP_ER;
 
     } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_LX))) {
         pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP_LX;
