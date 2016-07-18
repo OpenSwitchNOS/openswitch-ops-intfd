@@ -163,7 +163,7 @@ vtysh_intf_context_clientcallback(void *p_private)
    if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_LOOPBACK) == 0)
    {
        vtysh_ovsdb_cli_print(p_msg, "interface loopback %s",
-               ifrow->name + 2);
+               ifrow->name + 8);
        p_msg->disp_header_cfg = true;
        return e_vtysh_ok;
    }
