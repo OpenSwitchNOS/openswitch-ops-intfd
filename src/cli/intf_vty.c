@@ -3589,13 +3589,31 @@ int cli_show_xvr_dom_exec (struct cmd_element *self, struct vty *vty,
                         strcmp(cur_state,
                                INTERFACE_HW_INTF_INFO_MAP_SPLIT_4_TRUE) == 0)
                 {
-                    vty_out(vty, " Connector: QSFP (splittable)%s",
+                    vty_out(vty, " Connector: QSFP+ (splittable)%s",
                             VTY_NEWLINE);
                     is_qsfp_splittable = true;
                 }
                 else
                 {
-                    vty_out(vty, " Connector: QSFP %s", VTY_NEWLINE);
+                    vty_out(vty, " Connector: QSFP+ %s", VTY_NEWLINE);
+                }
+            }
+            else if (strcmp(cur_state,
+                            INTERFACE_HW_INTF_INFO_MAP_CONNECTOR_QSFP28) == 0)
+            {
+                cur_state = smap_get(&ifrow->hw_intf_info,
+                                     INTERFACE_HW_INTF_INFO_MAP_SPLIT_4);
+                if (cur_state != NULL &&
+                        strcmp(cur_state,
+                               INTERFACE_HW_INTF_INFO_MAP_SPLIT_4_TRUE) == 0)
+                {
+                    vty_out(vty, " Connector: QSFP28 (splittable)%s",
+                            VTY_NEWLINE);
+                    is_qsfp_splittable = true;
+                }
+                else
+                {
+                    vty_out(vty, " Connector: QSFP28 %s", VTY_NEWLINE);
                 }
             }
             else
