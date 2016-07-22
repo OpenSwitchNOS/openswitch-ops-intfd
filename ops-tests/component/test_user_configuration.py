@@ -33,11 +33,9 @@ TOPOLOGY = """
 """
 
 
-fixed_intf = "1"
-test_intf = "21"
-split_parent = '50'
-split_children = ['50-1', '50-2', '50-3', '50-4']
-qsfp_intf = "53"
+test_intf = "0"
+test_intf_2 = "0"
+split_parent = "0"
 
 
 def sw_set_intf_user_config(dut, int, conf):
@@ -151,8 +149,45 @@ def short_sleep(tm=.5):
 def test_user_configuration(topology, step):
     ops1 = topology.get("ops1")
     assert ops1 is not None
+    global test_intf, split_parent, test_intf_2
 
     ops1("/bin/systemctl stop ops-pmd", shell="bash")
+
+    # Find couple of non-splittable interfaces
+    # Find a splittable interface
+    step("Step 0- Identify split and non-split interfaces on this platform "
+         "to carry out tests")
+    subsys_uuid = ops1("ovs-vsctl list subsystem | grep -i uuid | "
+                       "cut -d : -f 2", shell="bash")
+    output = ops1("get subsystem {} other_info:interface_count"
+                  .format(subsys_uuid), shell="vsctl")
+    lines = output.split('\n')
+    intf_count = int(lines[1].strip('"'))
+
+    i = 1
+    while i <= intf_count:
+        split_cap = sw_get_intf_state(ops1, i,
+                                      ['hw_intf_info:split_4'])
+        if split_cap == '"true"':
+            intf_count -= 4
+            if split_parent == "0":
+                split_parent = str(i)
+                print("split_parent " + split_parent)
+        elif split_cap != '"true"':
+            connector = sw_get_intf_state(ops1, i,
+                                          ['pm_info:connector'])
+            if connector == "absent" and test_intf == "0":
+                test_intf = str(i)
+                print("test_intf " + test_intf)
+            elif test_intf_2 == "0":
+                test_intf_2 = str(i)
+                print("test_intf_2 " + test_intf_2)
+
+        i += 1
+        if test_intf != "0" and split_parent != "0" and test_intf_2 != "0":
+            break
+
+    assert test_intf != "0" and split_parent != "0" and test_intf_2 != "0"
 
     step("Step 1- Configure interface on switch s1 as no routing else the "
          "interface will use the port admin logic to set its own "
@@ -212,6 +247,9 @@ def test_user_configuration(topology, step):
                                        ['error', 'hw_intf_config:enable'])
     assert err == 'admin_down' and hw_enable == '"false"'
 
+    # MTU range is not user configurable in OPS.
+    # MTU range is hardcoded in OPS (576 - 9192).
+    # Use hardcoded range in the test.
     step("Step 11- Clear MTU and verify it is set to default.")
     sw_set_intf_pm_info(ops1, test_intf, ('connector=SFP_RJ45',
                                           'connector_status=supported'))
@@ -243,13 +281,13 @@ def test_user_configuration(topology, step):
     assert mtu == '"576"'
 
     step("Step 14- Set MTU to max allowed value.")
-    sw_set_intf_user_config(ops1, test_intf, ['admin=up', 'mtu=1500'])
+    sw_set_intf_user_config(ops1, test_intf, ['admin=up', 'mtu=9192'])
     short_sleep()
 
     mtu, hw_enable = sw_get_intf_state(ops1, test_intf,
                                        ['hw_intf_config:mtu',
                                         'hw_intf_config:enable'])
-    assert mtu == '"1500"' and hw_enable == '"true"'
+    assert mtu == '"9192"' and hw_enable == '"true"'
 
     step("Step 15- Set MTU to value in the allowed range.")
     sw_set_intf_user_config(ops1, test_intf, ['admin=up', 'mtu=1000'])
@@ -268,7 +306,7 @@ def test_user_configuration(topology, step):
     assert error == 'invalid_mtu'
 
     mtu = sw_get_intf_state(ops1, test_intf, ['hw_intf_config:mtu'])
-    assert mtu != '"2000"'
+    assert mtu != '"9300"'
 
     step("Step 17- Set MTU below allowed range.")
     sw_set_intf_user_config(ops1, test_intf, ['mtu=100'])
@@ -294,15 +332,13 @@ def test_user_configuration(topology, step):
                                   ['hw_intf_config:enable'])
     assert hw_enable == '"true"'
 
-    assert hw_info_speeds == '"1000,10000"'
-
     step("Step 20- Set user_config:speeds to a valid value(s)")
-    sw_set_intf_user_config(ops1, test_intf, ['admin=up',
-                                              'speeds=1000,10000'])
+    user_speed = "speeds=" + hw_info_speeds.strip('"')
+    sw_set_intf_user_config(ops1, test_intf, ['admin=up', user_speed])
     short_sleep()
 
     speeds = sw_get_intf_state(ops1, test_intf, ['hw_intf_config:speeds'])
-    assert speeds == '"1000,10000"'
+    assert speeds == hw_info_speeds
 
     step("Step 21- Set user_config:speeds to an invalid value")
     sw_set_intf_user_config(ops1, test_intf, ['speeds=1100,10000'])
@@ -320,15 +356,15 @@ def test_user_configuration(topology, step):
 
     step("Step 23- Display error message for show interface <child-intf>"
          "when parent is not split")
-    out = ops1("show interface 52-1")
-    assert "Parent interface of 52-1 is not split" in out
+    out = ops1("show interface " + split_parent + "-1")
+    assert "Parent interface of " + split_parent + "-1 is not split" in out
     short_sleep()
 
     step("Step 24- Display error message for show interface <parent-intf>"
          "when parent-intf is split")
     # please don't clean this interface, this is being used in Step 25
     ops1("configure terminal")
-    ops1("interface 50")
+    ops1("interface " + split_parent)
     ops1._shells['vtysh']._prompt = (
         '.*Do you want to continue [y/n]?'
     )
@@ -337,9 +373,9 @@ def test_user_configuration(topology, step):
         '(^|\n)switch(\\([\\-a-zA-Z0-9]*\\))?#'
     )
     ops1('y')
-    out = ops1('do show interface 50')
+    out = ops1('do show interface ' + split_parent)
     ops1("end")
-    assert "Interface 50 is split" in out
+    assert "Interface " + split_parent + " is split" in out
     short_sleep()
 
     step("Step 25- Verify show running-config and show running-config"
@@ -364,21 +400,22 @@ def test_user_configuration(topology, step):
 
     step("Step 26- Verify that the default admin status of"
          "an interface is down")
-    out = ops1("show interface 32")
+    out = ops1("show interface " + test_intf_2)
     assert 'Admin state is down' in out
     short_sleep()
 
     step("Step 27- Verify that the admin state is changed"
          "when interface is 'shutdown' and 'no shutdown'")
     ops1("configure terminal")
-    ops1("interface 1")
+    ops1("interface " + test_intf_2)
     ops1("no shutdown")
-    out = ops1("do show interface 1")
+    out = ops1("do show interface " + test_intf_2)
     assert 'Admin state is up' in out
 
     ops1("shutdown")
-    out = ops1("do show interface 1")
-    assert 'Admin state is down' in out and 'Interface 1 is down' in out
+    out = ops1("do show interface " + test_intf_2)
+    assert 'Admin state is down' in out and \
+        'Interface ' + test_intf_2 + ' is down' in out
     ops1("end")
 
     step("Step 28- Verify that user not able "
