@@ -1579,15 +1579,19 @@ parse_lag(struct vty *vty, int argc, const char *argv[])
     const struct ovsrec_port *port_row = NULL;
     bool one_lag_to_show;
 
+	// Return if argv is not a LAG port
+	if (argc != 0 &&
+	    strncmp(argv[0], LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) != 0) {
+		return 0;
+	}
+
     OVSREC_PORT_FOR_EACH(port_row, idl) {
         if (strncmp(port_row->name, LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) == 0) {
             one_lag_to_show = true;
             if (argc != 0) {
-               if (strlen(argv[0]) > LAG_PORT_NAME_PREFIX_LENGTH) {
-                  if (strncmp(port_row->name, argv[0], strlen(argv[0])) != 0) {
-                      one_lag_to_show = false;
-                  }
-               }
+                if (strncmp(port_row->name, argv[0], strlen(argv[0])) != 0) {
+                    one_lag_to_show = false;
+                }
             }
             if (one_lag_to_show) {
                /* Print the LAG port name because lag port is present. */
