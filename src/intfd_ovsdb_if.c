@@ -1097,12 +1097,20 @@ del_old_port(struct shash_node *sh_node)
         for(j = 0; j < port_data->n_interfaces; j++) {
             smap_init(&hw_cfg_smap);
             intf_row = port_data->interface[j];
-            /* Making sure not to reset an interface associated with another port */
-            if (!get_matching_port_row(intf_row->name))
-            {
-                VLOG_DBG("Port delete : reset interface %s\n", intf_row->name);
-                smap_add(&hw_cfg_smap, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE_FALSE);
-                ovsrec_interface_set_hw_intf_config(intf_row, &hw_cfg_smap);
+            /* logical interface details will not be there in
+               interface table since it has been deleted */
+            struct ovsrec_interface *intf = get_matching_interface_row(sh_node->name);
+            /* skip this for virtual interfaces */
+            if(intf){
+                /* Making sure not to reset a physical interface associated
+                   with another port */
+                if (!get_matching_port_row(intf_row->name))
+                {
+                    VLOG_DBG("Port delete : reset interface %s\n", intf_row->name);
+                    smap_add(&hw_cfg_smap, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE,
+                             INTERFACE_HW_INTF_CONFIG_MAP_ENABLE_FALSE);
+                    ovsrec_interface_set_hw_intf_config(intf_row, &hw_cfg_smap);
+                }
             }
             smap_destroy(&hw_cfg_smap);
         }
@@ -1938,13 +1946,6 @@ port_reconfigure(void)
          * Use SHASH_FOR_EACH_SAFE since del_old_interface()
          * will delete the current node. */
     } else if (OVSREC_IDL_ANY_TABLE_ROWS_DELETED(port_row, idl_seqno)) {
-       /* Do not delete old ports if virtual inetrfaces are getting deleted.*/
-        struct ovsrec_interface *intf = get_matching_interface_row(port_row->name);
-        if ((intf) && ((STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_VLANSUBINT))
-                   ||  (STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_LOOPBACK))
-                   ||  (STR_EQ(intf->type, OVSREC_INTERFACE_TYPE_INTERNAL)))) {
-           goto end;
-        }
         SHASH_FOR_EACH_SAFE(sh_node, sh_next, &all_ports) {
             struct ovsrec_port *port = shash_find_data(&sh_idl_ports, sh_node->name);
             if (!port) {
