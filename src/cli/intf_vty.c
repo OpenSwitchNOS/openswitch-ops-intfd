@@ -1328,7 +1328,7 @@ parse_l3config(const char *if_name, struct vty *vty)
     if (!port_row) {
         return 0;
     }
-    if (check_iface_in_bridge(if_name)) {
+    if (!check_iface_in_vrf(if_name)) {
         vty_out(vty, "%3s%s%s", "", "no routing", VTY_NEWLINE);
         parse_vlan(if_name, vty);
     }
