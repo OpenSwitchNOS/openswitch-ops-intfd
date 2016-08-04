@@ -3224,6 +3224,7 @@ DEFUN (vtysh_interface,
       "Interface's name\n")
 {
     static char ifnumber[MAX_IFNAME_LENGTH];
+    char ifnumber_temp[MAX_IFNAME_LENGTH];
     const struct ovsrec_interface *if_row = NULL;
     const struct ovsrec_vlan *vlan_row = NULL;
     uint16_t flag = 1;
@@ -3271,13 +3272,13 @@ DEFUN (vtysh_interface,
     if (verify_ifname((char *)argv[0]))
     {
         vty->node = VLAN_INTERFACE_NODE;
-        GET_VLANIF(ifnumber, argv[0]);
+        GET_VLANIF(ifnumber_temp, argv[0]);
         vlan_id = atoi(argv[0] + 4);
         OVSREC_VLAN_FOR_EACH(vlan_row, idl)
         {
             if (vlan_row->id == vlan_id)
             {
-                if (create_vlan_interface(ifnumber) == CMD_OVSDB_FAILURE)
+                if (create_vlan_interface(ifnumber_temp) == CMD_OVSDB_FAILURE)
                 {
                     return CMD_OVSDB_FAILURE;
                 }
@@ -3295,11 +3296,11 @@ DEFUN (vtysh_interface,
             vty_out(vty, "%% Unknown command.%s", VTY_NEWLINE);
             return CMD_SUCCESS;
          } else if (strlen(argv[0]) < MAX_IFNAME_LENGTH) {
-                   strncpy(ifnumber, argv[0], MAX_IFNAME_LENGTH);
+                   strncpy(ifnumber_temp, argv[0], MAX_IFNAME_LENGTH);
 
                    OVSREC_INTERFACE_FOR_EACH (if_row, idl)
                    {
-                       if (strcmp (if_row->name, ifnumber) == 0) {
+                       if (strcmp (if_row->name, ifnumber_temp) == 0) {
                            if ((if_row->error != NULL) &&
                                ((strcmp(if_row->error, "lanes_split")) == 0)) {
                               vty_out(vty, "Interface Warning : Split Interface\n");
@@ -3309,13 +3310,14 @@ DEFUN (vtysh_interface,
                        }
                    }
                    if (flag) {
-                      default_port_add(ifnumber);
+                      default_port_add(ifnumber_temp);
                    }
                 }
                 else {
                     return CMD_ERR_NO_MATCH;
                 }
-    VLOG_DBG("%s ifnumber = %s\n", __func__, ifnumber);
+    VLOG_DBG("%s ifnumber = %s\n", __func__, ifnumber_temp);
+    strncpy(ifnumber, ifnumber_temp, MAX_IFNAME_LENGTH);
     vty->index = ifnumber;
     return CMD_SUCCESS;
 }
@@ -3329,6 +3331,7 @@ DEFUN (no_vtysh_interface,
 {
   vty->node = CONFIG_NODE;
   static char ifnumber[MAX_IFNAME_LENGTH];
+  char ifnumber_temp[MAX_IFNAME_LENGTH] = {0};
 
   if (strchr(argv[0], '.'))
   {
@@ -3347,19 +3350,20 @@ DEFUN (no_vtysh_interface,
   }
 
   if (VERIFY_VLAN_IFNAME(argv[0]) == 0) {
-      GET_VLANIF(ifnumber, argv[0]);
-      if (delete_vlan_interface(ifnumber) == CMD_OVSDB_FAILURE) {
+      GET_VLANIF(ifnumber_temp, argv[0]);
+      if (delete_vlan_interface(ifnumber_temp) == CMD_OVSDB_FAILURE) {
           return CMD_OVSDB_FAILURE;
       }
   }
   else if (strlen(argv[0]) < MAX_IFNAME_LENGTH)
   {
-    strncpy(ifnumber, argv[0], MAX_IFNAME_LENGTH);
+    strncpy(ifnumber_temp, argv[0], MAX_IFNAME_LENGTH);
   }
   else
   {
     return CMD_ERR_NO_MATCH;
   }
+  strncpy(ifnumber, ifnumber_temp, MAX_IFNAME_LENGTH);
   vty->index = ifnumber;
   return CMD_SUCCESS;
 }
