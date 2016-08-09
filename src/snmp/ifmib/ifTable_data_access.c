@@ -12,6 +12,10 @@
 #include "vswitch-idl.h"
 #include "openvswitch/vlog.h"
 
+static unsigned int idl_seqno;
+
+VLOG_DEFINE_THIS_MODULE(ops_intfd_snmp);
+
 int ifTable_init_data(ifTable_registration *ifTable_reg) {
     DEBUGMSGTL(("verbose:ifTable:ifTable_init_data", "called\n"));
     return MFD_SUCCESS;
@@ -165,4 +169,90 @@ int ifTable_row_prep(ifTable_rowreq_ctx *rowreq_ctx) {
     DEBUGMSGTL(("verbose:ifTable:ifTable_row_prep", "called\n"));
     netsnmp_assert(NULL != rowreq_ctx);
     return MFD_SUCCESS;
+}
+
+const char * snmp_context_lookup(const char *context_name)
+{
+    const struct ovsrec_snmpv3_context *context_row = NULL;
+    OVSREC_SNMPV3_CONTEXT_FOR_EACH(context_row,idl) {
+        if (strcmp(context_row->name,context_name) == 0) {
+            return context_row->vrf->name;
+        }
+    }
+    return NULL;
+}
+
+/*
+Funtion helps to find the vrf name and linked vrf ports,based on the context name given.
+For ex: If the VRF linked with interface one and resepctive OID is "1.3.6.1.2.1.2.2.1.7.1"
+the funtion will formed a temp oid based linked ports ,
+it compares with ifmapped_OID, if both matched will return true.
+*/
+int is_oid_belongs_context(int ifmapped_OID,const char * context_name)
+{
+        size_t i,j;
+        const struct ovsrec_system *ovs_row = NULL;
+
+        ovs_row = ovsrec_system_first(idl);
+        const char * vrf_name = NULL;
+        if (!ovs_row) {
+            VLOG_INFO("not able to fetch interface row\n");
+            return FALSE;
+        }
+        vrf_name = snmp_context_lookup(context_name);
+        if(vrf_name) {
+        for (i = 0; i < ovs_row->n_vrfs; i++)  {
+              const struct ovsrec_vrf *vrf_cfg = ovs_row->vrfs[i];
+              if(strcmp (vrf_name,vrf_cfg->name) == 0)
+              {
+                for (j = 0; j < vrf_cfg->n_ports; j++) {
+                     struct ovsrec_port *port_cfg = vrf_cfg->ports[j];
+                     int temp = atoi(port_cfg->name);
+                     if(temp == ifmapped_OID)
+                     {
+                       return TRUE;
+                     }
+                 }
+              }
+          }
+}
+  return FALSE;
+}
+
+void snmp_context_initialize(void) {
+
+     ifTable_registration *user_context;
+     u_long flags;
+     flags = 0;
+     unsigned int new_idl_seqno = 0;
+     new_idl_seqno = ovsdb_idl_get_seqno(idl);
+     const struct ovsrec_snmpv3_context *ovs_row = NULL;
+
+     if (new_idl_seqno == idl_seqno) {
+        goto err_idl;
+        /*There was no change in the DB*/
+     }
+     ovs_row = ovsrec_snmpv3_context_first(idl);
+     if(!ovs_row) {
+      goto err_idl;
+     }
+
+     if ((!OVSREC_IDL_ANY_TABLE_ROWS_MODIFIED(ovs_row, idl_seqno)) &&
+         (!OVSREC_IDL_ANY_TABLE_ROWS_DELETED(ovs_row, idl_seqno))  &&
+         (!OVSREC_IDL_ANY_TABLE_ROWS_INSERTED(ovs_row, idl_seqno))){
+                goto err_table;
+     }
+
+      OVSREC_SNMPV3_CONTEXT_FOR_EACH(ovs_row, idl) {
+      user_context = netsnmp_create_data_list("ifTable", NULL, NULL);
+      _ifTable_initialize_interface(user_context,flags,ovs_row->name);
+     }
+
+     idl_seqno = new_idl_seqno;
+err_idl:
+     VLOG_DBG("There is no change in idl_seq_no");
+     return;
+err_table:
+     VLOG_DBG("There is no change in VRF_ROW");
+     return;
 }

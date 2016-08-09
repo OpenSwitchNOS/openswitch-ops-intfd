@@ -26,9 +26,14 @@ void init_ifTable(void) {
     user_context = netsnmp_create_data_list("ifTable", NULL, NULL);
     flags = 0;
 
-    _ifTable_initialize_interface(user_context, flags);
+    _ifTable_initialize_interface(user_context, flags,NULL);
 
     ifTable_ovsdb_idl_init(idl);
+}
+
+void init_snmp_context(void) {
+ DEBUGMSGTL(("verbose:ifTable:init_snmp_context", "called\n"));
+ snmp_context_initialize();
 }
 
 void shutdown_ifTable(void) {

@@ -3,7 +3,7 @@
 #include "ifTable.h"
 
 void _ifTable_initialize_interface(ifTable_registration *user_ctx,
-                                   u_long flags);
+                                   u_long flags,char *vrf_ctx);
 void _ifTable_shutdown_interface(ifTable_registration *user_ctx);
 ifTable_registration *ifTable_registration_get(void);
 ifTable_registration *ifTable_registration_set(ifTable_registration *newreg);
