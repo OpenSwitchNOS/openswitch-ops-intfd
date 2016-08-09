@@ -6,6 +6,7 @@
 #include <net-snmp/agent/net-snmp-agent-includes.h>
 
 #define MAX_ADMIN_STATE_LENGTH 8
+#define MAX_LINK_STATE_LENGTH 8
 #define MAC_ADDRESS_OCTATES 6
 int ifTable_skip_function(const struct ovsdb_idl *idl,
                           const struct ovsrec_interface *interface_row);

@@ -6,6 +6,8 @@
 #include "ifXTable_ovsdb_get.h"
 
 void ifXTable_ovsdb_idl_init(struct ovsdb_idl *idl) {
+    ovsdb_idl_add_column(idl, &ovsrec_interface_col_link_speed);
+    ovsdb_idl_add_column(idl, &ovsrec_interface_col_link_state);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_statistics);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_pm_info);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_name);
@@ -110,7 +112,16 @@ void ovsdb_get_ifLinkUpDownTrapEnable(
 void ovsdb_get_ifHighSpeed(struct ovsdb_idl *idl,
                            const struct ovsrec_interface *interface_row,
                            u_long *ifHighSpeed_val_ptr) {
-    *ifHighSpeed_val_ptr = (u_long)NULL;
+    *ifHighSpeed_val_ptr= 0;
+    if (strncmp(interface_row->link_state,
+                OVSREC_INTERFACE_LINK_STATE_UP,
+                MAX_LINK_STATE_LENGTH) == 0 ){
+        const struct ovsdb_datum *datum;
+        datum = ovsrec_interface_get_link_speed(interface_row, OVSDB_TYPE_INTEGER);
+        if ((NULL!=datum) && (datum->n >0)) {
+            *ifHighSpeed_val_ptr =((long)datum->keys[0].integer)/1000000;
+        }
+    }
 }
 
 void ovsdb_get_ifPromiscuousMode(struct ovsdb_idl *idl,

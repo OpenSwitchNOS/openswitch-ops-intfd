@@ -92,18 +92,18 @@ void ifAdminStatus_custom_function(const struct ovsdb_idl *idl,
 void ifOperStatus_custom_function(const struct ovsdb_idl *idl,
                                   const struct ovsrec_interface *interface_row,
                                   long *ifOperStatus_val_ptr) {
-    if (strncmp(interface_row->admin_state,
-                OVSREC_INTERFACE_ADMIN_STATE_UP,
-                MAX_ADMIN_STATE_LENGTH) == 0 ) {
+    if (strncmp(interface_row->link_state,
+                OVSREC_INTERFACE_LINK_STATE_UP,
+                MAX_LINK_STATE_LENGTH) == 0 ) {
         *ifOperStatus_val_ptr = 1;
     }
-    else if (strncmp(interface_row->admin_state,
-                     OVSREC_INTERFACE_ADMIN_STATE_DOWN,
-                     MAX_ADMIN_STATE_LENGTH) == 0 ) {
+    else if (strncmp(interface_row->link_state,
+                     OVSREC_INTERFACE_LINK_STATE_DOWN,
+                     MAX_LINK_STATE_LENGTH) == 0 ) {
         *ifOperStatus_val_ptr = 2;
     }
-    else if (strncmp(interface_row->admin_state,
-                     "testing", MAX_ADMIN_STATE_LENGTH) == 0 ) {
+    else if (strncmp(interface_row->link_state,
+                     "testing", MAX_LINK_STATE_LENGTH) == 0 ) {
         *ifOperStatus_val_ptr = 3;
     }
 }

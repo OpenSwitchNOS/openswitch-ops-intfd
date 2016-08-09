@@ -41,9 +41,9 @@
 			},
 			"ifSpeed": {
 				"OvsTable": "interface",
-				"OvsColumn": "hw_intf_info",
+				"OvsColumn": "link_speed",
 				"Type": {
-					"Key": "max_speed"
+					"Key": null
 				},
 				"CustomFunction":null
 			},
@@ -65,7 +65,7 @@
 			},
 			"ifOperStatus": {
 				"OvsTable": "interface",
-				"OvsColumn": "admin_state",
+				"OvsColumn": "link_state",
 				"Type": {
 					"Key": null
 				},
@@ -314,13 +314,21 @@
 				"CustomFunction": null
 			},
 			"ifHighSpeed": {
-				"OvsTable": null,
-				"OvsColumn": null,
+				"OvsTable": "interface",
+				"OvsColumn": "link_speed",
 				"Type": {
 					"Key": null
 				},
 				"CustomFunction": null
 			},
+                        "ifOperStatus": {
+                                "OvsTable": "interface",
+                                "OvsColumn": "link_state",
+                                "Type": {
+                                        "Key": null
+                                },
+                                "CustomFunction": "ifOperStatus_custom_function"
+                        },
 			"ifPromiscuousMode": {
 				"OvsTable": null,
 				"OvsColumn": null,
