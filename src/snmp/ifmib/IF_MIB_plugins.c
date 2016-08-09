@@ -6,6 +6,10 @@
 #include "IF_MIB_scalars.h"
 #include "ifTable.h"
 #include "ifXTable.h"
+#include "ovsdb-idl.h"
+#include "openvswitch/vlog.h"
+
+extern struct ovsdb_idl *idl;
 
 void ops_snmp_init(void) {
 
@@ -13,7 +17,9 @@ init_ifTable();
 init_ifXTable();
 }
 
-void ops_snmp_run(void){}
+void ops_snmp_run(void){
+init_snmp_context();
+}
 void ops_snmp_wait(void){}
 void ops_snmp_destroy(void){
 shutdown_ifTable();

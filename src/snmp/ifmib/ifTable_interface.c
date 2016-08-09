@@ -46,7 +46,7 @@ static Netsnmp_Node_Handler _mfd_ifTable_object_lookup;
 static Netsnmp_Node_Handler _mfd_ifTable_get_values;
 
 void _ifTable_initialize_interface(ifTable_registration *reg_ptr,
-                                   u_long flags) {
+                                   u_long flags,char *snmp_ctx) {
     netsnmp_baby_steps_access_methods *access_multiplexer =
         &ifTable_if_ctx.access_multiplexer;
     netsnmp_table_registration_info *tbl_info = &ifTable_if_ctx.tbl_info;
@@ -88,6 +88,13 @@ void _ifTable_initialize_interface(ifTable_registration *reg_ptr,
     }
 
     reginfo->my_reg_void = &ifTable_if_ctx;
+    /*context registration with if table mapping while registration the iftable .
+    it's needed while retrieve the table via context for filtering context */
+
+    if(snmp_ctx !=  NULL)
+    {
+     reginfo->contextName = strdup(snmp_ctx);
+    }
 
     if (access_multiplexer->object_lookup)
         mfd_modes |= BABY_STEP_OBJECT_LOOKUP;
@@ -409,12 +416,77 @@ int _mfd_ifTable_get_values(netsnmp_mib_handler *handler,
     u_char *old_string;
     void (*dataFreeHook)(void *);
     int rc;
+    char *snmpv3context = NULL;
+    int sublength = (int)requests->requestvb->name_length - 1;
 
     DEBUGMSGTL(("internal:ifTable:_mfd_ifTable_get_values", "called\n"));
 
     netsnmp_assert(NULL != rowreq_ctx);
 
     for (; requests; requests = requests->next) {
+     /* Context based filter added while do the snmp table retrival .
+    Design approch :
+    Based on the context name recevied , filterout the OID from MIB directory
+    compared the context mapped OID(is_oid_belongs_context) and send the same .
+    For Ex: In this case of Vrf_red linked with interface One and two ,the follwing OID will be
+    shown
+    Interfaced OID = 1.3.6.1.2.1.2.2.1.7.1.0
+    Interfaced OID = 1.3.6.1.2.1.2.2.1.7.2.0
+    If no context given , this will not called .*/
+    if (reginfo->contextName != NULL)
+    {
+        snmpv3context = reginfo->contextName;
+        int new_oid = (int)requests->requestvb->name_loc[sublength];
+        if(is_oid_belongs_context(new_oid,snmpv3context))
+        {
+           old_string = requests->requestvb->val.string;
+           dataFreeHook = requests->requestvb->dataFreeHook;
+                 if (NULL == requests->requestvb->val.string) {
+                 requests->requestvb->val.string = requests->requestvb->buf;
+                 requests->requestvb->val_len = sizeof(requests->requestvb->buf);
+         }
+         else if (requests->requestvb->buf ==
+                  requests->requestvb->val.string) {
+                  if (requests->requestvb->val_len !=
+                        sizeof(requests->requestvb->buf)) {
+                    requests->requestvb->val_len = sizeof(requests->requestvb->buf);
+                  }
+            }
+
+            tri = netsnmp_extract_table_info(requests);
+               if (NULL == tri) {
+                continue;
+            }
+            rc = _ifTable_get_column(rowreq_ctx, requests->requestvb, tri->colnum);
+            if (rc) {
+                if (MFD_SKIP == rc) {
+                    requests->requestvb->type = SNMP_NOSUCHINSTANCE;
+                   rc = SNMP_ERR_NOERROR;
+                }
+            } else if (NULL == requests->requestvb->val.string) {
+                snmp_log(LOG_ERR, "NULL varbind data pointer!\n");
+                rc = SNMP_ERR_GENERR;
+               }
+            if (rc) {
+                netsnmp_request_set_error(requests, SNMP_VALIDATE_ERR(rc));
+            }
+
+            if (old_string && (old_string != requests->requestvb->buf) &&
+                    (requests->requestvb->val.string != old_string)) {
+                if (dataFreeHook) {
+                    (*dataFreeHook)(old_string);
+                } else {
+                    free(old_string);
+                  }
+            }
+            return SNMP_ERR_NOERROR;
+       }
+       else {
+            requests->requestvb->type = SNMP_NOSUCHINSTANCE;
+            return SNMP_ERR_NOERROR;
+       }
+    }
+    else {
         old_string = requests->requestvb->val.string;
         dataFreeHook = requests->requestvb->dataFreeHook;
         if (NULL == requests->requestvb->val.string) {
@@ -454,6 +526,7 @@ int _mfd_ifTable_get_values(netsnmp_mib_handler *handler,
                 free(old_string);
             }
         }
+      }
     }
 
     return SNMP_ERR_NOERROR;
