@@ -5,6 +5,7 @@
 #include "ifTable_enums.h"
 
 void init_ifTable(void);
+void init_snmp_context(void);
 void shutdown_ifTable(void);
 
 typedef netsnmp_data_list ifTable_registration;

@@ -403,6 +403,11 @@ intfd_ovsdb_init(const char *db_path)
 
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_hw_intf_info);
     ovsdb_idl_omit_alert(idl, &ovsrec_interface_col_hw_intf_info);
+    /* Added for VRF context Mapping */
+    ovsdb_idl_add_column(idl, &ovsrec_system_col_vrfs);
+    ovsdb_idl_add_table(idl, &ovsrec_table_vrf);
+    ovsdb_idl_add_column(idl, &ovsrec_vrf_col_name);
+    ovsdb_idl_add_column(idl, &ovsrec_vrf_col_ports);
 
     /* Mark the following columns write-only. */
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_error);
