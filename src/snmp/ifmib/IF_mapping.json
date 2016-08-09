@@ -41,9 +41,9 @@
 			},
 			"ifSpeed": {
 				"OvsTable": "interface",
-				"OvsColumn": "hw_intf_info",
+				"OvsColumn": "link_speed",
 				"Type": {
-					"Key": "max_speed"
+					"Key": null
 				},
 				"CustomFunction":null
 			},
@@ -314,8 +314,8 @@
 				"CustomFunction": null
 			},
 			"ifHighSpeed": {
-				"OvsTable": null,
-				"OvsColumn": null,
+				"OvsTable": "interface",
+				"OvsColumn": "link_speed",
 				"Type": {
 					"Key": null
 				},
