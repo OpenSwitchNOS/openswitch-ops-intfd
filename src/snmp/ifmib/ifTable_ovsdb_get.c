@@ -15,6 +15,20 @@ void ifTable_ovsdb_idl_init(struct ovsdb_idl *idl) {
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_user_config);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_mtu);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_name);
+    /* Monitor system table to check for cur_cfg value */
+    ovsdb_idl_add_table(idl, &ovsrec_table_system);
+    ovsdb_idl_add_column(idl, &ovsrec_system_col_cur_cfg);
+    ovsdb_idl_add_column(idl, &ovsrec_system_col_vrfs);
+   /* Monitor the following columns of VRF, marking them read-only. */
+    ovsdb_idl_add_table(idl, &ovsrec_table_vrf);
+    ovsdb_idl_add_column(idl, &ovsrec_vrf_col_name);
+    ovsdb_idl_add_column(idl, &ovsrec_vrf_col_ports);
+   /* Monitor the following columns of Context,for to use the context registration.
+     marking them read-only. */
+    ovsdb_idl_add_table(idl, &ovsrec_table_snmpv3_context);
+    ovsdb_idl_add_column(idl, &ovsrec_snmpv3_context_col_name);
+    ovsdb_idl_add_column(idl, &ovsrec_snmpv3_context_col_vrf);
+    ovsdb_idl_add_column(idl, &ovsrec_snmpv3_context_col_community_name);
 }
 
 void ovsdb_get_ifIndex(struct ovsdb_idl *idl,
@@ -23,7 +37,7 @@ void ovsdb_get_ifIndex(struct ovsdb_idl *idl,
     ifTableifIndex_custom_function(idl, interface_row, ifIndex_val_ptr);
 }
 
-void ovsdb_get_ifDescr(struct ovsdb_idl *idl,
+void ovsdb_get_ifDescr(struct ovsdb_idl *OBidl,
                        const struct ovsrec_interface *interface_row,
                        char *ifDescr_val_ptr, size_t *ifDescr_val_ptr_len) {
     *ifDescr_val_ptr = '\0';
