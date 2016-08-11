@@ -1325,8 +1325,9 @@ validate_n_set_interface_capability(struct iface *intf)
             intf->op_state.autoneg_capability = INTFD_AUTONEG_CAPABILITY_UNSUPPORTED;
         }
 
-        intf->op_state.speeds[0] = SPEED_25G;
-        intf->op_state.n_speeds = 1;
+        intf->op_state.speeds[0] = SPEED_10G;
+        intf->op_state.speeds[1] = SPEED_25G;
+        intf->op_state.n_speeds = 2;
 
     } else if (CONNECTOR_IS_SFP(intf)) {
         intf->op_state.autoneg_capability = INTFD_AUTONEG_CAPABILITY_REQUIRED;
@@ -1353,8 +1354,9 @@ validate_n_set_interface_capability(struct iface *intf)
             intf->op_state.autoneg_capability = INTFD_AUTONEG_CAPABILITY_UNSUPPORTED;
         }
 
-        intf->op_state.speeds[0] = SPEED_100G;
-        intf->op_state.n_speeds = 1;
+        intf->op_state.speeds[0] = SPEED_40G;
+        intf->op_state.speeds[1] = SPEED_100G;
+        intf->op_state.n_speeds = 2;
 
     } else {
         /* This should be midplane connectors.  As of now,
