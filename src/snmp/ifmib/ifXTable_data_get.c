@@ -93,7 +93,7 @@ int ifOutBroadcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
 }
 
 int ifHCInOctets_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                     unsigned long long *ifHCInOctets_val_ptr) {
+                     U64 *ifHCInOctets_val_ptr) {
     netsnmp_assert(NULL != ifHCInOctets_val_ptr);
     DEBUGMSGTL(("verbose:ifXTable:ifHCInOctets_get", "called\n"));
     netsnmp_assert(NULL != rowreq_ctx);
@@ -103,7 +103,7 @@ int ifHCInOctets_get(ifXTable_rowreq_ctx *rowreq_ctx,
 }
 
 int ifHCInUcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                        unsigned long long *ifHCInUcastPkts_val_ptr) {
+                        U64 *ifHCInUcastPkts_val_ptr) {
     netsnmp_assert(NULL != ifHCInUcastPkts_val_ptr);
     DEBUGMSGTL(("verbose:ifXTable:ifHCInUcastPkts_get", "called\n"));
     netsnmp_assert(NULL != rowreq_ctx);
@@ -113,7 +113,7 @@ int ifHCInUcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
 }
 
 int ifHCInMulticastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                            unsigned long long *ifHCInMulticastPkts_val_ptr) {
+                            U64 *ifHCInMulticastPkts_val_ptr) {
     netsnmp_assert(NULL != ifHCInMulticastPkts_val_ptr);
     DEBUGMSGTL(("verbose:ifXTable:ifHCInMulticastPkts_get", "called\n"));
     netsnmp_assert(NULL != rowreq_ctx);
@@ -123,7 +123,7 @@ int ifHCInMulticastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
 }
 
 int ifHCInBroadcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                            unsigned long long *ifHCInBroadcastPkts_val_ptr) {
+                            U64 *ifHCInBroadcastPkts_val_ptr) {
     netsnmp_assert(NULL != ifHCInBroadcastPkts_val_ptr);
     DEBUGMSGTL(("verbose:ifXTable:ifHCInBroadcastPkts_get", "called\n"));
     netsnmp_assert(NULL != rowreq_ctx);
@@ -133,7 +133,7 @@ int ifHCInBroadcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
 }
 
 int ifHCOutOctets_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                      unsigned long long *ifHCOutOctets_val_ptr) {
+                      U64 *ifHCOutOctets_val_ptr) {
     netsnmp_assert(NULL != ifHCOutOctets_val_ptr);
     DEBUGMSGTL(("verbose:ifXTable:ifHCOutOctets_get", "called\n"));
     netsnmp_assert(NULL != rowreq_ctx);
@@ -143,7 +143,7 @@ int ifHCOutOctets_get(ifXTable_rowreq_ctx *rowreq_ctx,
 }
 
 int ifHCOutUcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                         unsigned long long *ifHCOutUcastPkts_val_ptr) {
+                         U64 *ifHCOutUcastPkts_val_ptr) {
     netsnmp_assert(NULL != ifHCOutUcastPkts_val_ptr);
     DEBUGMSGTL(("verbose:ifXTable:ifHCOutUcastPkts_get", "called\n"));
     netsnmp_assert(NULL != rowreq_ctx);
@@ -153,7 +153,7 @@ int ifHCOutUcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
 }
 
 int ifHCOutMulticastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                             unsigned long long *ifHCOutMulticastPkts_val_ptr) {
+                             U64 *ifHCOutMulticastPkts_val_ptr) {
     netsnmp_assert(NULL != ifHCOutMulticastPkts_val_ptr);
     DEBUGMSGTL(("verbose:ifXTable:ifHCOutMulticastPkts_get", "called\n"));
     netsnmp_assert(NULL != rowreq_ctx);
@@ -163,7 +163,7 @@ int ifHCOutMulticastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
 }
 
 int ifHCOutBroadcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                             unsigned long long *ifHCOutBroadcastPkts_val_ptr) {
+                             U64 *ifHCOutBroadcastPkts_val_ptr) {
     netsnmp_assert(NULL != ifHCOutBroadcastPkts_val_ptr);
     DEBUGMSGTL(("verbose:ifXTable:ifHCOutBroadcastPkts_get", "called\n"));
     netsnmp_assert(NULL != rowreq_ctx);

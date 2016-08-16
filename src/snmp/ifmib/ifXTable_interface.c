@@ -309,51 +309,43 @@ NETSNMP_STATIC_INLINE int _ifXTable_get_column(ifXTable_rowreq_ctx *rowreq_ctx,
     } break;
     case COLUMN_IFHCINOCTETS: {
         var->type = ASN_COUNTER64;
-        var->val_len = sizeof(unsigned long long);
-        rc =
-            ifHCInOctets_get(rowreq_ctx, (unsigned long long *)var->val.string);
+        var->val_len = sizeof(U64);
+        rc = ifHCInOctets_get(rowreq_ctx, (U64 *)var->val.string);
     } break;
     case COLUMN_IFHCINUCASTPKTS: {
         var->type = ASN_COUNTER64;
-        var->val_len = sizeof(unsigned long long);
-        rc = ifHCInUcastPkts_get(rowreq_ctx,
-                                 (unsigned long long *)var->val.string);
+        var->val_len = sizeof(U64);
+        rc = ifHCInUcastPkts_get(rowreq_ctx, (U64 *)var->val.string);
     } break;
     case COLUMN_IFHCINMULTICASTPKTS: {
         var->type = ASN_COUNTER64;
-        var->val_len = sizeof(unsigned long long);
-        rc = ifHCInMulticastPkts_get(rowreq_ctx,
-                                     (unsigned long long *)var->val.string);
+        var->val_len = sizeof(U64);
+        rc = ifHCInMulticastPkts_get(rowreq_ctx, (U64 *)var->val.string);
     } break;
     case COLUMN_IFHCINBROADCASTPKTS: {
         var->type = ASN_COUNTER64;
-        var->val_len = sizeof(unsigned long long);
-        rc = ifHCInBroadcastPkts_get(rowreq_ctx,
-                                     (unsigned long long *)var->val.string);
+        var->val_len = sizeof(U64);
+        rc = ifHCInBroadcastPkts_get(rowreq_ctx, (U64 *)var->val.string);
     } break;
     case COLUMN_IFHCOUTOCTETS: {
         var->type = ASN_COUNTER64;
-        var->val_len = sizeof(unsigned long long);
-        rc = ifHCOutOctets_get(rowreq_ctx,
-                               (unsigned long long *)var->val.string);
+        var->val_len = sizeof(U64);
+        rc = ifHCOutOctets_get(rowreq_ctx, (U64 *)var->val.string);
     } break;
     case COLUMN_IFHCOUTUCASTPKTS: {
         var->type = ASN_COUNTER64;
-        var->val_len = sizeof(unsigned long long);
-        rc = ifHCOutUcastPkts_get(rowreq_ctx,
-                                  (unsigned long long *)var->val.string);
+        var->val_len = sizeof(U64);
+        rc = ifHCOutUcastPkts_get(rowreq_ctx, (U64 *)var->val.string);
     } break;
     case COLUMN_IFHCOUTMULTICASTPKTS: {
         var->type = ASN_COUNTER64;
-        var->val_len = sizeof(unsigned long long);
-        rc = ifHCOutMulticastPkts_get(rowreq_ctx,
-                                      (unsigned long long *)var->val.string);
+        var->val_len = sizeof(U64);
+        rc = ifHCOutMulticastPkts_get(rowreq_ctx, (U64 *)var->val.string);
     } break;
     case COLUMN_IFHCOUTBROADCASTPKTS: {
         var->type = ASN_COUNTER64;
-        var->val_len = sizeof(unsigned long long);
-        rc = ifHCOutBroadcastPkts_get(rowreq_ctx,
-                                      (unsigned long long *)var->val.string);
+        var->val_len = sizeof(U64);
+        rc = ifHCOutBroadcastPkts_get(rowreq_ctx, (U64 *)var->val.string);
     } break;
     case COLUMN_IFLINKUPDOWNTRAPENABLE: {
         var->type = ASN_INTEGER;

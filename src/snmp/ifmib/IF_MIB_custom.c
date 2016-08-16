@@ -352,20 +352,23 @@ void ifOutBroadcastPkts_custom_function(
 void ifHCInOctets_custom_function(
     const struct ovsdb_idl *idl,
     const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCInOctets_val_ptr){
+    U64 *ifHCInOctets_val_ptr){
     const struct ovsdb_datum *datum;
     union ovsdb_atom atom;
     unsigned int index;
-
     datum = ovsrec_interface_get_statistics(interface_row,
                 OVSDB_TYPE_STRING, OVSDB_TYPE_INTEGER);
-    if (NULL==datum)
-        *ifHCInOctets_val_ptr = 0;
+    if (NULL==datum){
+        ifHCInOctets_val_ptr->high = 0;
+        ifHCInOctets_val_ptr->low = 0;
+    }
     else {
         atom.string = interface_statistics_keys[1];
         index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-        *ifHCInOctets_val_ptr = (index == UINT_MAX)? 0 :
-                                 datum->values[index].integer;
+        ifHCInOctets_val_ptr->high = (index == UINT_MAX)? 0 :
+                                ((datum->values[index].integer & 0xffffffff00000000)>>32);
+        ifHCInOctets_val_ptr->low = (index == UINT_MAX)? 0 :
+                                (datum->values[index].integer & 0x00000000ffffffff);
     }
 
 }
@@ -373,91 +376,105 @@ void ifHCInOctets_custom_function(
 void ifHCInUcastPkts_custom_function(
     const struct ovsdb_idl *idl,
     const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCInUcastPkts_val_ptr){
+    U64 *ifHCInUcastPkts_val_ptr){
     const struct ovsdb_datum *datum;
     union ovsdb_atom atom;
     unsigned int index;
 
     datum = ovsrec_interface_get_statistics(interface_row, OVSDB_TYPE_STRING,
                                             OVSDB_TYPE_INTEGER);
-    if (NULL==datum)
-        *ifHCInUcastPkts_val_ptr = 0;
+    if (NULL==datum){
+         ifHCInUcastPkts_val_ptr->high = 0;
+         ifHCInUcastPkts_val_ptr->low = 0;
+    }
     else {
         atom.string = interface_statistics_keys[0];
         index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-        *ifHCInUcastPkts_val_ptr = (index == UINT_MAX)? 0 :
-                                    datum->values[index].integer;
+        ifHCInUcastPkts_val_ptr->high = (index == UINT_MAX)? 0 :
+                                ((datum->values[index].integer & 0xffffffff00000000)>>32);
+        ifHCInUcastPkts_val_ptr->low = (index == UINT_MAX)? 0 :
+                                (datum->values[index].integer & 0x00000000ffffffff);
     }
 }
 
 void ifHCInMulticastPkts_custom_function(
     const struct ovsdb_idl *idl,
     const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCInMulticastPkts_val_ptr){
-    *ifHCInMulticastPkts_val_ptr = 0;
+    U64 *ifHCInMulticastPkts_val_ptr){
+    ifHCInMulticastPkts_val_ptr->high = 0;
+    ifHCInMulticastPkts_val_ptr->low = 0;
 }
 
 void ifHCInBroadcastPkts_custom_function(
     const struct ovsdb_idl *idl,
     const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCInBroadcastPkts_val_ptr){
-    *ifHCInBroadcastPkts_val_ptr = 0;
+    U64 *ifHCInBroadcastPkts_val_ptr){
+    ifHCInBroadcastPkts_val_ptr->high = 0;
+    ifHCInBroadcastPkts_val_ptr->low = 0;
 }
 
 void ifHCOutOctets_custom_function(
     const struct ovsdb_idl *idl,
     const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCOutOctets_val_ptr){
+    U64 *ifHCOutOctets_val_ptr){
     const struct ovsdb_datum *datum;
     union ovsdb_atom atom;
     unsigned int index;
 
     datum = ovsrec_interface_get_statistics(interface_row,
                 OVSDB_TYPE_STRING, OVSDB_TYPE_INTEGER);
-    if (NULL==datum)
-        *ifHCOutOctets_val_ptr = 0;
+    if (NULL==datum){
+        ifHCOutOctets_val_ptr->high = 0;
+        ifHCOutOctets_val_ptr->low = 0;
+    }
     else {
         atom.string = interface_statistics_keys[3];
         index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-        *ifHCOutOctets_val_ptr = (index == UINT_MAX)? 0 :
-                                  datum->values[index].integer;
+        ifHCOutOctets_val_ptr->high = (index == UINT_MAX)? 0 :
+                                ((datum->values[index].integer & 0xffffffff00000000)>>32);
+        ifHCOutOctets_val_ptr->low = (index == UINT_MAX)? 0 :
+                                (datum->values[index].integer & 0x00000000ffffffff);
     }
-
 }
 
 void ifHCOutUcastPkts_custom_function(
     const struct ovsdb_idl *idl,
     const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCOutUcastPkts_val_ptr){
+    U64 *ifHCOutUcastPkts_val_ptr){
     const struct ovsdb_datum *datum;
     union ovsdb_atom atom;
     unsigned int index;
 
     datum = ovsrec_interface_get_statistics(interface_row,
                 OVSDB_TYPE_STRING, OVSDB_TYPE_INTEGER);
-    if (NULL==datum)
-        *ifHCOutUcastPkts_val_ptr = 0;
+    if (NULL==datum){
+        ifHCOutUcastPkts_val_ptr->high = 0;
+        ifHCOutUcastPkts_val_ptr->low = 0;
+    }
     else {
         atom.string = interface_statistics_keys[2];
         index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
-        *ifHCOutUcastPkts_val_ptr = (index == UINT_MAX)? 0 :
-                                     datum->values[index].integer;
+        ifHCOutUcastPkts_val_ptr->high = (index == UINT_MAX)? 0 :
+                                ((datum->values[index].integer & 0xffffffff00000000)>>32);
+        ifHCOutUcastPkts_val_ptr->low = (index == UINT_MAX)? 0 :
+                                (datum->values[index].integer & 0x00000000ffffffff);
     }
-
 }
 
 void ifHCOutMulticastPkts_custom_function(
     const struct ovsdb_idl *idl,
     const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCOutMulticastPkts_val_ptr){
-    *ifHCOutMulticastPkts_val_ptr = 0;
+    U64 *ifHCOutMulticastPkts_val_ptr){
+    ifHCOutMulticastPkts_val_ptr->high = 0;
+    ifHCOutMulticastPkts_val_ptr->low = 0;
 }
 
 void ifHCOutBroadcastPkts_custom_function(
     const struct ovsdb_idl *idl,
     const struct ovsrec_interface *interface_row,
-     unsigned long long *ifHCOutBroadcastPkts_val_ptr){
-    *ifHCOutBroadcastPkts_val_ptr = 0;
+    U64 *ifHCOutBroadcastPkts_val_ptr){
+    ifHCOutBroadcastPkts_val_ptr->high = 0;
+    ifHCOutBroadcastPkts_val_ptr->low = 0;
 }
 
 void ifLinkUpDownTrapEnable_custom_function(

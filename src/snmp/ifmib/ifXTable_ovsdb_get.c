@@ -49,54 +49,54 @@ void ovsdb_get_ifOutBroadcastPkts(struct ovsdb_idl *idl,
 
 void ovsdb_get_ifHCInOctets(struct ovsdb_idl *idl,
                             const struct ovsrec_interface *interface_row,
-                            unsigned long long *ifHCInOctets_val_ptr) {
+                            U64 *ifHCInOctets_val_ptr) {
     ifHCInOctets_custom_function(idl, interface_row, ifHCInOctets_val_ptr);
 }
 
 void ovsdb_get_ifHCInUcastPkts(struct ovsdb_idl *idl,
                                const struct ovsrec_interface *interface_row,
-                               unsigned long long *ifHCInUcastPkts_val_ptr) {
+                               U64 *ifHCInUcastPkts_val_ptr) {
     ifHCInUcastPkts_custom_function(idl, interface_row,
                                     ifHCInUcastPkts_val_ptr);
 }
 
-void ovsdb_get_ifHCInMulticastPkts(
-    struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCInMulticastPkts_val_ptr) {
+void ovsdb_get_ifHCInMulticastPkts(struct ovsdb_idl *idl,
+                                   const struct ovsrec_interface *interface_row,
+                                   U64 *ifHCInMulticastPkts_val_ptr) {
     ifHCInMulticastPkts_custom_function(idl, interface_row,
                                         ifHCInMulticastPkts_val_ptr);
 }
 
-void ovsdb_get_ifHCInBroadcastPkts(
-    struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCInBroadcastPkts_val_ptr) {
+void ovsdb_get_ifHCInBroadcastPkts(struct ovsdb_idl *idl,
+                                   const struct ovsrec_interface *interface_row,
+                                   U64 *ifHCInBroadcastPkts_val_ptr) {
     ifHCInBroadcastPkts_custom_function(idl, interface_row,
                                         ifHCInBroadcastPkts_val_ptr);
 }
 
 void ovsdb_get_ifHCOutOctets(struct ovsdb_idl *idl,
                              const struct ovsrec_interface *interface_row,
-                             unsigned long long *ifHCOutOctets_val_ptr) {
+                             U64 *ifHCOutOctets_val_ptr) {
     ifHCOutOctets_custom_function(idl, interface_row, ifHCOutOctets_val_ptr);
 }
 
 void ovsdb_get_ifHCOutUcastPkts(struct ovsdb_idl *idl,
                                 const struct ovsrec_interface *interface_row,
-                                unsigned long long *ifHCOutUcastPkts_val_ptr) {
+                                U64 *ifHCOutUcastPkts_val_ptr) {
     ifHCOutUcastPkts_custom_function(idl, interface_row,
                                      ifHCOutUcastPkts_val_ptr);
 }
 
 void ovsdb_get_ifHCOutMulticastPkts(
     struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCOutMulticastPkts_val_ptr) {
+    U64 *ifHCOutMulticastPkts_val_ptr) {
     ifHCOutMulticastPkts_custom_function(idl, interface_row,
                                          ifHCOutMulticastPkts_val_ptr);
 }
 
 void ovsdb_get_ifHCOutBroadcastPkts(
     struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCOutBroadcastPkts_val_ptr) {
+    U64 *ifHCOutBroadcastPkts_val_ptr) {
     ifHCOutBroadcastPkts_custom_function(idl, interface_row,
                                          ifHCOutBroadcastPkts_val_ptr);
 }

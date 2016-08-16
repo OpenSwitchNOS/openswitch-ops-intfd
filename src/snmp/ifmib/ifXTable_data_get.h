@@ -16,28 +16,28 @@ int ifOutBroadcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
                            u_long *ifOutBroadcastPkts_val_ptr);
 
 int ifHCInOctets_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                     unsigned long long *ifHCInOctets_val_ptr);
+                     U64 *ifHCInOctets_val_ptr);
 
 int ifHCInUcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                        unsigned long long *ifHCInUcastPkts_val_ptr);
+                        U64 *ifHCInUcastPkts_val_ptr);
 
 int ifHCInMulticastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                            unsigned long long *ifHCInMulticastPkts_val_ptr);
+                            U64 *ifHCInMulticastPkts_val_ptr);
 
 int ifHCInBroadcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                            unsigned long long *ifHCInBroadcastPkts_val_ptr);
+                            U64 *ifHCInBroadcastPkts_val_ptr);
 
 int ifHCOutOctets_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                      unsigned long long *ifHCOutOctets_val_ptr);
+                      U64 *ifHCOutOctets_val_ptr);
 
 int ifHCOutUcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                         unsigned long long *ifHCOutUcastPkts_val_ptr);
+                         U64 *ifHCOutUcastPkts_val_ptr);
 
 int ifHCOutMulticastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                             unsigned long long *ifHCOutMulticastPkts_val_ptr);
+                             U64 *ifHCOutMulticastPkts_val_ptr);
 
 int ifHCOutBroadcastPkts_get(ifXTable_rowreq_ctx *rowreq_ctx,
-                             unsigned long long *ifHCOutBroadcastPkts_val_ptr);
+                             U64 *ifHCOutBroadcastPkts_val_ptr);
 
 int ifLinkUpDownTrapEnable_get(ifXTable_rowreq_ctx *rowreq_ctx,
                                long *ifLinkUpDownTrapEnable_val_ptr);

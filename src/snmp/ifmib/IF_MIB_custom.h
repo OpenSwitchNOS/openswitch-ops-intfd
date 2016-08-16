@@ -133,35 +133,35 @@ void ifOutBroadcastPkts_custom_function(
 
 void ifHCInOctets_custom_function(
     const struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCInOctets_val_ptr);
+    U64 *ifHCInOctets_val_ptr);
 
 void ifHCInUcastPkts_custom_function(
     const struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCInUcastPkts_val_ptr);
+    U64 *ifHCInUcastPkts_val_ptr);
 
 void ifHCInMulticastPkts_custom_function(
     const struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCInMulticastPkts_val_ptr);
+    U64 *ifHCInMulticastPkts_val_ptr);
 
 void ifHCInBroadcastPkts_custom_function(
     const struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCInBroadcastPkts_val_ptr);
+    U64 *ifHCInBroadcastPkts_val_ptr);
 
 void ifHCOutOctets_custom_function(
     const struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCOutOctets_val_ptr);
+    U64 *ifHCOutOctets_val_ptr);
 
 void ifHCOutUcastPkts_custom_function(
     const struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCOutUcastPkts_val_ptr);
+    U64 *ifHCOutUcastPkts_val_ptr);
 
 void ifHCOutMulticastPkts_custom_function(
     const struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCOutMulticastPkts_val_ptr);
+    U64 *ifHCOutMulticastPkts_val_ptr);
 
 void ifHCOutBroadcastPkts_custom_function(
     const struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
-    unsigned long long *ifHCOutBroadcastPkts_val_ptr);
+    U64 *ifHCOutBroadcastPkts_val_ptr);
 
 void ifLinkUpDownTrapEnable_custom_function(
     const struct ovsdb_idl *idl, const struct ovsrec_interface *interface_row,
