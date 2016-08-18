@@ -28,6 +28,7 @@
 #define INTERFACE_USER_CONFIG_MAP_PAUSE_DEFAULT                 "none"
 #define INTERFACE_USER_CONFIG_MAP_DUPLEX_DEFAULT                "full"
 #define INTERFACE_USER_CONFIG_MAP_SPEEDS_DEFAULT                "auto"
+#define INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL_DEFAULT         "none"
 #define VLAN_MODE_ROUTED                                        "routed"
 
 #include "ops-utils.h"

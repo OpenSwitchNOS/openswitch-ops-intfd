@@ -727,6 +727,95 @@ DEFUN_NO_FORM (cli_intf_duplex,
         "duplex",
         "Configure the interface duplex mode\n");
 
+/*
+ * CLI "errorcontrol"
+ * default : none
+ */
+DEFUN (cli_intf_error_control,
+        cli_intf_error_control_cmd,
+        "errorcontrol (none|fc-fec|rs-fec)",
+        "Configure the interface error-control mode\n"
+        "Turn off error-control (Default)\n"
+        "Configure Fire codes error-control\n"
+        "Configure Reed-Solomon codes error-control")
+{
+    const struct ovsrec_interface * row = NULL;
+    struct ovsdb_idl_txn *status_txn = cli_do_config_start();
+    enum ovsdb_idl_txn_status status;
+    struct smap smap_user_config;
+
+    if (status_txn == NULL)
+    {
+        VLOG_ERR(OVSDB_TXN_CREATE_ERROR);
+        cli_do_config_abort(status_txn);
+        return CMD_OVSDB_FAILURE;
+    }
+
+    row = ovsrec_interface_first(idl);
+    if (!row)
+    {
+        cli_do_config_abort(status_txn);
+        return CMD_OVSDB_FAILURE;
+    }
+
+    OVSREC_INTERFACE_FOR_EACH(row, idl)
+    {
+        if (strcmp(row->name, (char*)vty->index) == 0)
+        {
+            if (is_parent_interface_split(row))
+            {
+                vty_out(vty,
+                        "This interface has been split. Operation"
+                        " not allowed%s", VTY_NEWLINE);
+                cli_do_config_abort (status_txn);
+                return CMD_SUCCESS;
+            }
+            smap_clone(&smap_user_config, &row->user_config);
+
+            if (vty_flags & CMD_FLAG_NO_CMD)
+            {
+                smap_remove(&smap_user_config,
+                        INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL);
+            }
+            else
+            {
+                if (strcmp(INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL_DEFAULT,
+                        argv[0]) == 0)
+                {
+                    smap_remove(&smap_user_config,
+                            INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL);
+                }
+                else
+                {
+                    smap_replace(&smap_user_config,
+                            INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL, argv[0]);
+                }
+            }
+            ovsrec_interface_set_user_config(row, &smap_user_config);
+            break;
+        }
+    }
+
+    status = cli_do_config_finish(status_txn);
+
+    smap_destroy(&smap_user_config);
+
+    if (status == TXN_SUCCESS || status == TXN_UNCHANGED)
+    {
+        return CMD_SUCCESS;
+    }
+    else
+    {
+        VLOG_ERR(OVSDB_TXN_COMMIT_ERROR);
+    }
+
+    return CMD_OVSDB_FAILURE;
+}
+
+DEFUN_NO_FORM (cli_intf_error_control,
+        cli_intf_error_control_cmd,
+        "errorcontrol",
+        "Configure the interface error-control mode\n");
 
 /*
  * CLI "flowcontrol"
@@ -1828,6 +1917,16 @@ cli_show_run_interface_exec (struct cmd_element *self, struct vty *vty,
             {
                 break;
             }
+        }
+
+        cur_state = smap_get(&row->user_config,
+                INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL);
+        if ((NULL != cur_state)
+                && (strcmp(cur_state,
+                        INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL_DEFAULT) != 0))
+        {
+            PRINT_INT_HEADER_IN_SHOW_RUN;
+            vty_out(vty, "   errorcontrol %s %s", cur_state, VTY_NEWLINE);
         }
 
         cur_state = smap_get(&row->user_config,
@@ -2962,6 +3061,7 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
     const char *cur_duplex = NULL;
     const char *cur_mtu = NULL;
     const char *cur_flow_control = NULL;
+    const char *cur_error_control = NULL;
     static char *interface_statistics_keys [] = {
         "rx_packets",
         "rx_bytes",
@@ -3209,6 +3309,32 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
                 {
                     vty_out(vty, " Input flow-control is off, "
                         "output flow-control is off%s",VTY_NEWLINE);
+                }
+
+                cur_error_control = smap_get(&ifrow->user_config,
+                                       INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL);
+                if (NULL != cur_error_control)
+                {
+                    if (strcmp(cur_error_control,
+                        INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL_FC_FEC) == 0)
+                    {
+                        vty_out(vty, " Error-control is Fire codes "
+                            "forward error correction%s",VTY_NEWLINE);
+                    }
+                    else if (strcmp(cur_error_control,
+                        INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL_RS_FEC) == 0)
+                    {
+                        vty_out(vty, " Error-control is Reed-Solomon codes "
+                            "forward error correction%s",VTY_NEWLINE);
+                    }
+                    else
+                    {
+                        vty_out(vty, " Error-control is off%s",VTY_NEWLINE);
+                    }
+                }
+                else
+                {
+                    vty_out(vty, " Error-control is off%s",VTY_NEWLINE);
                 }
             }
 
@@ -4044,6 +4170,7 @@ intf_ovsdb_init(void)
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_link_state);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_admin_state);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_duplex);
+    ovsdb_idl_add_column(idl, &ovsrec_interface_col_error_control);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_mtu);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_mac_in_use);
     ovsdb_idl_add_column(idl, &ovsrec_interface_col_link_speed);
@@ -4121,6 +4248,8 @@ void cli_post_init(void)
     install_element (INTERFACE_NODE, &no_cli_intf_flowcontrol_cmd);
     install_element (INTERFACE_NODE, &cli_intf_autoneg_cmd);
     install_element (INTERFACE_NODE, &no_cli_intf_autoneg_cmd);
+    install_element (INTERFACE_NODE, &cli_intf_error_control_cmd);
+    install_element (INTERFACE_NODE, &no_cli_intf_error_control_cmd);
 
     /* Show commands */
     install_element (ENABLE_NODE, &cli_intf_show_intferface_ifname_cmd);
