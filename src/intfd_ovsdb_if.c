@@ -78,11 +78,12 @@ struct intf_hw_info {
 };
 
 struct intf_user_cfg {
-    enum ovsrec_interface_user_config_admin_e      admin_state;
-    enum ovsrec_interface_user_config_autoneg_e    autoneg;
-    enum ovsrec_interface_user_config_pause_e      pause;
-    enum ovsrec_interface_user_config_duplex_e     duplex;
-    enum ovsrec_interface_user_config_lane_split_e lane_split;
+    enum ovsrec_interface_user_config_admin_e         admin_state;
+    enum ovsrec_interface_user_config_autoneg_e       autoneg;
+    enum ovsrec_interface_user_config_pause_e         pause;
+    enum ovsrec_interface_user_config_duplex_e        duplex;
+    enum ovsrec_interface_user_config_error_control_e error_control;
+    enum ovsrec_interface_user_config_lane_split_e    lane_split;
 
     uint32_t   speeds[INTFD_MAX_SPEEDS_ALLOWED];
     int32_t    n_speeds;
@@ -94,8 +95,9 @@ struct intf_oper_state {
     enum ovsrec_interface_error_e reason;
     enum ovsrec_interface_error_e autoneg_reason;
 
-    enum ovsrec_interface_hw_intf_config_duplex_e   duplex;
-    enum ovsrec_interface_hw_intf_config_pause_e    pause;
+    enum ovsrec_interface_hw_intf_config_duplex_e        duplex;
+    enum ovsrec_interface_hw_intf_config_pause_e         pause;
+    enum ovsrec_interface_hw_intf_config_error_control_e error_control;
     int32_t     autoneg_capability;
     int32_t     autoneg_state;
     int32_t     mtu;
@@ -161,6 +163,13 @@ char *iface_config_autoneg_strings[] = {
     INTERFACE_USER_CONFIG_MAP_AUTONEG_OFF,
     INTERFACE_USER_CONFIG_MAP_AUTONEG_ON,
     INTERFACE_USER_CONFIG_MAP_AUTONEG_DEFAULT
+};
+
+/* The strings that indicate the error control configuration on an interface. */
+char *iface_config_error_control_strings[] = {
+    INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL_NONE,
+    INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL_FC_FEC,
+    INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL_RS_FEC
 };
 
 typedef struct subsystem {
@@ -241,6 +250,8 @@ intfd_debug_dump(struct ds *ds, int argc, const char *argv[])
                           intf->user_cfg.pause);
             ds_put_format(ds, "    cfg_duplex         : %d\n",
                           intf->user_cfg.duplex);
+            ds_put_format(ds, "    cfg_error_control  : %s\n",
+                          iface_config_error_control_strings[intf->user_cfg.error_control]);
             ds_put_format(ds, "    op_connector       : %s\n",
                           interface_pm_info_connector_strings[intf->pm_info.connector]);
             ds_put_format(ds, "    hw_interface_type  : %s\n",
@@ -715,6 +726,18 @@ intfd_parse_user_cfg(struct intf_user_cfg *user_config,
         }
     }
 
+    /* user_config:error_control */
+    user_config->pause = INTERFACE_USER_CONFIG_ERROR_CONTROL_NONE;
+
+    data = smap_get(ifrow_config, INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL);
+    if (data && (STR_EQ(data, INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL_FC_FEC))) {
+        user_config->error_control = INTERFACE_USER_CONFIG_ERROR_CONTROL_FC_FEC;
+
+    } else if (data && (STR_EQ(data, INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL_RS_FEC))) {
+        user_config->error_control = INTERFACE_USER_CONFIG_ERROR_CONTROL_RS_FEC;
+
+    }
+
     /* user_config:lane_split */
     user_config->lane_split = INTERFACE_USER_CONFIG_LANE_SPLIT_NO_SPLIT;
     data = smap_get(ifrow_config, INTERFACE_USER_CONFIG_MAP_LANE_SPLIT);
@@ -1021,6 +1044,30 @@ set_op_state_duplex(struct iface *intf)
     intf->op_state.duplex = hw_duplex;
 
 } /* set_op_state_duplex */
+
+static void
+set_op_state_error_control(struct iface *intf)
+{
+    enum ovsrec_interface_hw_intf_config_error_control_e hw_error_control;
+
+    switch(intf->user_cfg.error_control) {
+
+    case INTERFACE_USER_CONFIG_ERROR_CONTROL_RS_FEC:
+        hw_error_control = INTERFACE_HW_INTF_CONFIG_ERROR_CONTROL_RS_FEC;
+        break;
+
+    case INTERFACE_USER_CONFIG_ERROR_CONTROL_FC_FEC:
+        hw_error_control = INTERFACE_HW_INTF_CONFIG_ERROR_CONTROL_FC_FEC;
+        break;
+
+    case INTERFACE_USER_CONFIG_ERROR_CONTROL_NONE:
+    default:
+        hw_error_control = INTERFACE_HW_INTF_CONFIG_ERROR_CONTROL_NONE;
+        break;
+    }
+    intf->op_state.error_control = hw_error_control;
+
+} /* set_op_state_error_control */
 
 static void
 add_new_port(const struct ovsrec_port *port_row)
@@ -1537,6 +1584,17 @@ set_intf_hw_config_in_db(const struct ovsrec_interface *ifrow, struct iface *int
                             intf->op_state.mtu);
         }
 
+        /* hw_intf_config:error_control */
+        tmp_str = INTERFACE_HW_INTF_CONFIG_MAP_ERROR_CONTROL_NONE;
+        if (intf->op_state.error_control == INTERFACE_HW_INTF_CONFIG_ERROR_CONTROL_RS_FEC) {
+            tmp_str = INTERFACE_HW_INTF_CONFIG_MAP_ERROR_CONTROL_RS_FEC;
+
+        } else if (intf->op_state.error_control == INTERFACE_HW_INTF_CONFIG_ERROR_CONTROL_FC_FEC) {
+            tmp_str = INTERFACE_HW_INTF_CONFIG_MAP_ERROR_CONTROL_FC_FEC;
+        }
+
+        smap_add(&smap, INTERFACE_HW_INTF_CONFIG_MAP_ERROR_CONTROL, tmp_str);
+
         /* Set speeds */
         if (intf->op_state.n_speeds > 0) {
             /* Use user-configured speeds. */
@@ -1595,6 +1653,8 @@ set_interface_config(const struct ovsrec_interface *ifrow, struct iface *intf)
         set_op_state_pause(intf);
 
         set_op_state_duplex(intf);
+
+        set_op_state_error_control(intf);
     }
 
     /* One interface needs to be reconfigured in h/w. */
@@ -1670,6 +1730,11 @@ handle_interfaces_config_mods(struct shash *sh_idl_interfaces)
             if (intf->user_cfg.mtu != new_user_cfg.mtu) {
                 cfg_changed = true;
                 intf->user_cfg.mtu = new_user_cfg.mtu;
+            }
+
+            if (intf->user_cfg.error_control != new_user_cfg.error_control) {
+                cfg_changed = true;
+                intf->user_cfg.error_control = new_user_cfg.error_control;
             }
 
             for (i = 0; i < INTFD_MAX_SPEEDS_ALLOWED; i++) {

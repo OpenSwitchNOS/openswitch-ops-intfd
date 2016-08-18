@@ -240,6 +240,13 @@ vtysh_intf_context_clientcallback(void *p_private)
       vtysh_ovsdb_cli_print(p_msg, "%4s%s %s", "", "duplex", cur_state);
    }
 
+   cur_state = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL);
+   if ((NULL != cur_state)
+         && (strcmp(cur_state, INTERFACE_USER_CONFIG_MAP_ERROR_CONTROL_NONE) != 0))
+   {
+      PRINT_INT_HEADER_IN_SHOW_RUN;
+      vtysh_ovsdb_cli_print(p_msg, "%4s%s %s", "", "errorcontrol", cur_state);
+   }
 
    cur_state = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_PAUSE);
    if ((NULL != cur_state)
