@@ -2766,18 +2766,12 @@ show_interface_status(struct vty *vty, const const struct ovsrec_interface *ifro
                 (strcmp(state_value,
                         OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN) == 0))
         {
-            if(internal_if)
-                vty_out (vty, "%-6s ", "down");
-            else
-                vty_out (vty, "%-6s ", ifrow->link_state);
+            vty_out (vty, "%-6s ", ifrow->link_state);
             vty_out (vty, "Administratively down    ");
         }
         else
         {
-            if(internal_if)
-                vty_out (vty, "%-6s ", "up");
-            else
-                vty_out (vty, "%-6s ", ifrow->link_state);
+            vty_out (vty, "%-6s ", ifrow->link_state);
             vty_out (vty, "                         ");
         }
     }
@@ -2790,20 +2784,14 @@ show_interface_status(struct vty *vty, const const struct ovsrec_interface *ifro
                 || strcmp(state_value,
                         OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN) == 0)
         {
-            if(internal_if)
-                vty_out (vty, "down ");
-            else
-                vty_out (vty, "%s ", ifrow->link_state);
+            vty_out (vty, "%s ", ifrow->link_state);
             vty_out (vty, "(Administratively down) %s", VTY_NEWLINE);
             vty_out (vty, " Admin state is down%s",
                     VTY_NEWLINE);
         }
         else
         {
-            if(internal_if)
-                vty_out (vty, "up %s", VTY_NEWLINE);
-            else
-                vty_out (vty, "%s %s", ifrow->link_state, VTY_NEWLINE);
+            vty_out (vty, "%s %s", ifrow->link_state, VTY_NEWLINE);
             vty_out (vty, " Admin state is up%s", VTY_NEWLINE);
         }
 
