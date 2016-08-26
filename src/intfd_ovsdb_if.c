@@ -1893,7 +1893,7 @@ remove_interface_from_port(const struct ovsrec_port *port_row)
                 VLOG_INFO("Set the new admin state based on the port state\n");
                 intf->user_cfg.admin_state = intf_parse_admin(intf_row);
                 set_interface_config(intf_row, intf);
-            } else {
+            } else if (intf){
                 VLOG_DBG("reset interface %s\n", intf_row->name);
                 smap_init(&hw_cfg_smap);
                 smap_add(&hw_cfg_smap,
