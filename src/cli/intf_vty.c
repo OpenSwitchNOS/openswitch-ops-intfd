@@ -1578,15 +1578,14 @@ parse_lag(struct vty *vty, int argc, const char *argv[])
 {
     const char *data = NULL;
     const struct ovsrec_port *port_row = NULL;
-    bool one_lag_to_show;
+    bool one_lag_to_show = false;
 
     OVSREC_PORT_FOR_EACH(port_row, idl) {
         if (strncmp(port_row->name, LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) == 0) {
-            one_lag_to_show = true;
             if (argc != 0) {
                if (strlen(argv[0]) > LAG_PORT_NAME_PREFIX_LENGTH) {
-                  if (strncmp(port_row->name, argv[0], strlen(argv[0])) != 0) {
-                      one_lag_to_show = false;
+                  if (strncmp(port_row->name, argv[0], strlen(argv[0])) == 0) {
+                      one_lag_to_show = true;
                   }
                }
             }
