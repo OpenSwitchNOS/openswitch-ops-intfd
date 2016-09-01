@@ -1584,7 +1584,8 @@ parse_lag(struct vty *vty, int argc, const char *argv[])
 {
     const char *data = NULL;
     const struct ovsrec_port *port_row = NULL;
-    bool one_lag_to_show;
+    bool one_lag_to_show = false;
+    bool found_lag = false;
 
     // Return if argv is not a LAG port
     if (argc != 0 &&
@@ -1594,11 +1595,17 @@ parse_lag(struct vty *vty, int argc, const char *argv[])
 
     OVSREC_PORT_FOR_EACH(port_row, idl) {
         if (strncmp(port_row->name, LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) == 0) {
-            one_lag_to_show = true;
             if (argc != 0) {
-                if (strncmp(port_row->name, argv[0], strlen(argv[0])) != 0) {
-                    one_lag_to_show = false;
-                }
+               if (strlen(argv[0]) > LAG_PORT_NAME_PREFIX_LENGTH) {
+                  if (strncmp(port_row->name, argv[0], strlen(argv[0])) == 0) {
+                     one_lag_to_show = true;
+                     found_lag = true;
+                  }
+               }
+            }
+            /* when argc =0, command given is to show all interfaces */
+            else {
+               one_lag_to_show = true;
             }
             if (one_lag_to_show) {
                /* Print the LAG port name because lag port is present. */
@@ -1665,19 +1672,21 @@ parse_lag(struct vty *vty, int argc, const char *argv[])
                qos_apply_port_show_running_config(port_row, &bPrinted, "interface");
                qos_cos_port_show_running_config(port_row, &bPrinted, "interface");
                qos_dscp_port_show_running_config(port_row, &bPrinted, "interface");
-            }
 
-            if(port_row->ip4_address)
-            {
-                vty_out(vty, "%3sip address %s %s", "", port_row->ip4_address, VTY_NEWLINE);
-            }
+               if(port_row->ip4_address) {
+                   vty_out(vty, "%3sip address %s %s", "", port_row->ip4_address, VTY_NEWLINE);
+               }
 
-            if(port_row->ip6_address)
-            {
-                vty_out(vty, "%3sipv6 address %s %s", "", port_row->ip6_address, VTY_NEWLINE);
+               if(port_row->ip6_address) {
+                   vty_out(vty, "%3sipv6 address %s %s", "", port_row->ip6_address, VTY_NEWLINE);
+               }
             }
-
         }
+        if ((argc != 0) && (found_lag = true)) {
+           /* Finished display of configuration of given interface */
+           break;
+        }
+
     }
 
     return 0;
