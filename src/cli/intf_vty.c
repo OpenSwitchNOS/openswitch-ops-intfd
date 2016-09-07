@@ -60,6 +60,7 @@ extern struct ovsdb_idl *idl;
 extern int
 create_sub_interface(const char* subifname);
 #define INTF_NAME_SIZE 50
+#define IPV6_LENGTH 4
 
 static struct cmd_node interface_node =
    {
@@ -1334,7 +1335,7 @@ parse_l3config(const char *if_name, struct vty *vty)
     if (!port_row) {
         return 0;
     }
-    if (check_iface_in_bridge(if_name)) {
+    if (!check_iface_in_vrf(if_name)) {
         vty_out(vty, "%3s%s%s", "", "no routing", VTY_NEWLINE);
         parse_vlan(if_name, vty);
     }
@@ -1585,15 +1586,19 @@ parse_lag(struct vty *vty, int argc, const char *argv[])
     const struct ovsrec_port *port_row = NULL;
     bool one_lag_to_show;
 
+    // Return if argv is not a LAG port
+    if (argc != 0 &&
+        strncmp(argv[0], LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) != 0) {
+        return 0;
+    }
+
     OVSREC_PORT_FOR_EACH(port_row, idl) {
         if (strncmp(port_row->name, LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) == 0) {
             one_lag_to_show = true;
             if (argc != 0) {
-               if (strlen(argv[0]) > LAG_PORT_NAME_PREFIX_LENGTH) {
-                  if (strncmp(port_row->name, argv[0], strlen(argv[0])) != 0) {
-                      one_lag_to_show = false;
-                  }
-               }
+                if (strncmp(port_row->name, argv[0], strlen(argv[0])) != 0) {
+                    one_lag_to_show = false;
+                }
             }
             if (one_lag_to_show) {
                /* Print the LAG port name because lag port is present. */
@@ -2524,7 +2529,7 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
 
     // Array to keep the statistics for each lag while adding the
     // stats for each interface in the lag.
-    unsigned int lag_statistics [12] = {0};
+    uint64_t lag_statistics [12] = {0};
 
     // Aggregation-key variables
     size_t aggr_key_len = 6;
@@ -2564,7 +2569,7 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
                                 OVSDB_TYPE_STRING, OVSDB_TYPE_INTEGER);
 
             // Adding statistic value for each interface in the lag
-            for (stat_index = 0; stat_index < sizeof(lag_statistics)/sizeof(int); stat_index++)
+            for (stat_index = 0; stat_index < sizeof(lag_statistics)/sizeof(int64_t); stat_index++)
             {
                 atom.string = interface_statistics_keys[stat_index];
                 index = ovsdb_datum_find_key(datum, &atom, OVSDB_TYPE_STRING);
@@ -2612,27 +2617,27 @@ show_lacp_interfaces (struct vty *vty, char* interface_statistics_keys[],
         qos_dscp_port_show(lag_port, lag_port->name);
 
         vty_out(vty, " RX%s", VTY_NEWLINE);
-        vty_out(vty, "   %10d input packets  ", lag_statistics[0]);
-        vty_out(vty, "   %10d bytes  ",lag_statistics[1]);
+        vty_out(vty, "   %10lu input packets  ", lag_statistics[0]);
+        vty_out(vty, "   %10lu bytes  ",lag_statistics[1]);
         vty_out(vty, "%s", VTY_NEWLINE);
 
-        vty_out(vty, "   %10d input error    ",lag_statistics[8]);
-        vty_out(vty, "   %10d dropped  ",lag_statistics[4]);
+        vty_out(vty, "   %10lu input error    ",lag_statistics[8]);
+        vty_out(vty, "   %10lu dropped  ",lag_statistics[4]);
         vty_out(vty, "%s", VTY_NEWLINE);
 
-        vty_out(vty, "   %10d CRC/FCS  ",lag_statistics[7]);
+        vty_out(vty, "   %10lu CRC/FCS  ",lag_statistics[7]);
         vty_out(vty, "%s", VTY_NEWLINE);
         vty_out(vty, " TX%s", VTY_NEWLINE);
 
-        vty_out(vty, "   %10d output packets ",lag_statistics[2]);
-        vty_out(vty, "   %10d bytes  ",lag_statistics[3]);
+        vty_out(vty, "   %10lu output packets ",lag_statistics[2]);
+        vty_out(vty, "   %10lu bytes  ",lag_statistics[3]);
         vty_out(vty, "%s", VTY_NEWLINE);
 
-        vty_out(vty, "   %10d input error    ",lag_statistics[11]);
-        vty_out(vty, "   %10d dropped  ",lag_statistics[9]);
+        vty_out(vty, "   %10lu input error    ",lag_statistics[11]);
+        vty_out(vty, "   %10lu dropped  ",lag_statistics[9]);
         vty_out(vty, "%s", VTY_NEWLINE);
 
-        vty_out(vty, "   %10d collision  ",lag_statistics[10]);
+        vty_out(vty, "   %10lu collision  ",lag_statistics[10]);
         vty_out(vty, "%s", VTY_NEWLINE);
     }
 
@@ -3073,7 +3078,9 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
             show_interface_status(vty, ifrow, internal_if, brief);
 
-            if (strcmp(OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN, ifrow->link_state) == 0 ){
+            if ((NULL == ifrow->link_state) ||
+                (strcmp(OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN, ifrow->link_state) == 0) )
+            {
                 user_config_speed = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_SPEEDS);
                 if (user_config_speed != NULL) {
                     vty_out(vty,"%-6s", user_config_speed);
@@ -3249,6 +3256,7 @@ DEFUN (vtysh_interface,
       "Interface's name\n")
 {
     static char ifnumber[MAX_IFNAME_LENGTH];
+    char ifnumber_temp[MAX_IFNAME_LENGTH];
     const struct ovsrec_interface *if_row = NULL;
     const struct ovsrec_vlan *vlan_row = NULL;
     uint16_t flag = 1;
@@ -3260,6 +3268,10 @@ DEFUN (vtysh_interface,
     if (strcmp(argv[0], "bridge_normal") == 0) {
         vty_out (vty, "Configuration of %s (default) not allowed.%s",
                        argv[0],VTY_NEWLINE);
+        return CMD_ERR_NOTHING_TODO;
+    } else if (strncmp(argv[0], "lag", 3) == 0) {
+        vty_out (vty, "Unknown interface %s. %s",
+                 argv[0], VTY_NEWLINE);
         return CMD_ERR_NOTHING_TODO;
     }
 
@@ -3292,17 +3304,17 @@ DEFUN (vtysh_interface,
     if (verify_ifname((char *)argv[0]))
     {
         vty->node = VLAN_INTERFACE_NODE;
-        GET_VLANIF(ifnumber, argv[0]);
+        GET_VLANIF(ifnumber_temp, argv[0]);
         vlan_id = atoi(argv[0] + 4);
         OVSREC_VLAN_FOR_EACH(vlan_row, idl)
         {
             if (vlan_row->id == vlan_id)
             {
-                if (create_vlan_interface(ifnumber) == CMD_OVSDB_FAILURE)
+                if (create_vlan_interface(ifnumber_temp) == CMD_OVSDB_FAILURE)
                 {
                     return CMD_OVSDB_FAILURE;
                 }
-                    break;
+                break;
             }
         }
         if (vlan_row == NULL) {
@@ -3316,11 +3328,11 @@ DEFUN (vtysh_interface,
             vty_out(vty, "%% Unknown command.%s", VTY_NEWLINE);
             return CMD_SUCCESS;
          } else if (strlen(argv[0]) < MAX_IFNAME_LENGTH) {
-                   strncpy(ifnumber, argv[0], MAX_IFNAME_LENGTH);
+                   strncpy(ifnumber_temp, argv[0], MAX_IFNAME_LENGTH);
 
                    OVSREC_INTERFACE_FOR_EACH (if_row, idl)
                    {
-                       if (strcmp (if_row->name, ifnumber) == 0) {
+                       if (strcmp (if_row->name, ifnumber_temp) == 0) {
                            if ((if_row->error != NULL) &&
                                ((strcmp(if_row->error, "lanes_split")) == 0)) {
                               vty_out(vty, "Interface Warning : Split Interface\n");
@@ -3330,13 +3342,14 @@ DEFUN (vtysh_interface,
                        }
                    }
                    if (flag) {
-                      default_port_add(ifnumber);
+                      default_port_add(ifnumber_temp);
                    }
                 }
                 else {
                     return CMD_ERR_NO_MATCH;
                 }
-    VLOG_DBG("%s ifnumber = %s\n", __func__, ifnumber);
+    VLOG_DBG("%s ifnumber = %s\n", __func__, ifnumber_temp);
+    strncpy(ifnumber, ifnumber_temp, MAX_IFNAME_LENGTH);
     vty->index = ifnumber;
     return CMD_SUCCESS;
 }
@@ -3350,6 +3363,7 @@ DEFUN (no_vtysh_interface,
 {
   vty->node = CONFIG_NODE;
   static char ifnumber[MAX_IFNAME_LENGTH];
+  char ifnumber_temp[MAX_IFNAME_LENGTH] = {0};
 
   if (strchr(argv[0], '.'))
   {
@@ -3368,19 +3382,20 @@ DEFUN (no_vtysh_interface,
   }
 
   if (VERIFY_VLAN_IFNAME(argv[0]) == 0) {
-      GET_VLANIF(ifnumber, argv[0]);
-      if (delete_vlan_interface(ifnumber) == CMD_OVSDB_FAILURE) {
+      GET_VLANIF(ifnumber_temp, argv[0]);
+      if (delete_vlan_interface(ifnumber_temp) == CMD_OVSDB_FAILURE) {
           return CMD_OVSDB_FAILURE;
       }
   }
   else if (strlen(argv[0]) < MAX_IFNAME_LENGTH)
   {
-    strncpy(ifnumber, argv[0], MAX_IFNAME_LENGTH);
+    strncpy(ifnumber_temp, argv[0], MAX_IFNAME_LENGTH);
   }
   else
   {
     return CMD_ERR_NO_MATCH;
   }
+  strncpy(ifnumber, ifnumber_temp, MAX_IFNAME_LENGTH);
   vty->index = ifnumber;
   return CMD_SUCCESS;
 }
@@ -3869,6 +3884,74 @@ show_ip_stats(struct vty *vty, bool isIpv6, const struct ovsdb_datum *datum)
     vty_out(vty, "%s", VTY_NEWLINE);
 }
 
+static void cli_show_ip_lag(const char *if_name, struct vty *vty, const char *argv[])
+{
+    const struct ovsrec_port *port_row = NULL;
+    bool isIpv6 = false;
+    int i;
+    bool forwarding_state;
+    bool port_aggregation_forwarding;
+
+    if(!strncmp(argv[0], "ipv6", IPV6_LENGTH)) {
+        isIpv6 = true;
+    }
+
+    OVSREC_PORT_FOR_EACH(port_row, idl) {
+        if (if_name &&
+            strncmp(port_row->name, if_name, INTF_NAME_SIZE) == 0 &&
+            strncmp(port_row->name, LAG_PORT_NAME_PREFIX, LAG_PORT_NAME_PREFIX_LENGTH) == 0) {
+            if (!check_port_in_vrf(port_row->name)) {
+                vty_out (vty, "Interface %s is not L3.%s", if_name, VTY_NEWLINE);
+                break;
+            }
+            else {
+                vty_out (vty, "Aggregate-name %s %s", port_row->name, VTY_NEWLINE);
+
+                forwarding_state = smap_get_bool(&port_row->forwarding_state,
+                                                 PORT_FORWARDING_STATE_MAP_FORWARDING,
+                                                 false);
+                vty_out (vty, "Forwarding State : %s %s",
+                         forwarding_state? "forwarding":"not forwarding", VTY_NEWLINE);
+
+                port_aggregation_forwarding =
+                        smap_get_bool(&port_row->forwarding_state,
+                                      PORT_FORWARDING_STATE_MAP_PORT_AGGREGATION_FORWARDING,
+                                      false);
+                vty_out (vty, "Port aggregation forwarding : %s %s",
+                         port_aggregation_forwarding? "forwarding":"not forwarding",
+                         VTY_NEWLINE);
+
+                /* Displaying primary and secondary addresses*/
+                if(isIpv6)
+                {
+                    if (port_row->ip6_address) {
+                        vty_out(vty, "IPv6 address %s%s", port_row->ip6_address,
+                                VTY_NEWLINE);
+                    }
+                    for (i = 0; i < port_row->n_ip6_address_secondary; i++) {
+                        vty_out(vty, "IPv6 address %s secondary%s",
+                                port_row->ip6_address_secondary[i],
+                                VTY_NEWLINE);
+                    }
+
+                }
+                else
+                {
+                    if (port_row->ip4_address) {
+                        vty_out(vty, "IPv4 address %s%s", port_row->ip4_address,
+                                VTY_NEWLINE);
+                    }
+                    for (i = 0; i < port_row->n_ip4_address_secondary; i++) {
+                        vty_out(vty, "IPv4 address %s secondary%s",
+                                port_row->ip4_address_secondary[i],
+                                VTY_NEWLINE);
+                    }
+                }
+            }
+        }
+    }
+}
+
 static int
 cli_show_ip_interface_exec(const char *argv[], int argc,
                            struct vty *vty)
@@ -4014,6 +4097,10 @@ cli_show_ip_interface_exec(const char *argv[], int argc,
             break;
         }
     }
+    //Check if this is a LAG interface
+    if (idx == count) {
+        cli_show_ip_lag(if_name, vty, argv);
+    }
 
     return 0;
 }
@@ -4068,6 +4155,12 @@ intf_ovsdb_init(void)
     ovsdb_idl_add_table(idl, &ovsrec_table_port);
     ovsdb_idl_add_column(idl, &ovsrec_port_col_name);
     ovsdb_idl_add_column(idl, &ovsrec_port_col_qos_status);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_forwarding_state);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_ip4_address);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_ip4_address_secondary);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_ip6_address);
+    ovsdb_idl_add_column(idl, &ovsrec_port_col_ip6_address_secondary);
+
     return;
 }
 

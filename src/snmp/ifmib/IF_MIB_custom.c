@@ -139,26 +139,32 @@ void ifPhysAddress_custom_function(const struct ovsdb_idl *idl,
                                    size_t *ifPhysAddress_val_ptr_len) {
 
     char *key = interface_row->mac_in_use ;
-    char hexbyte[3] = {0} ;
-    int octets[(strlen(key)+1) / 3] ;
-    char hexstg[7];
+    if (key != NULL) {
+        char hexbyte[3] = {0} ;
+        int octets[(strlen(key)+1) / 3] ;
+        char hexstg[7];
 
-    int d = 0, i = 0;
+        int d = 0, i = 0;
 
-    for( d = 0; d < strlen(key); d += 3 )
-    {
-        hexbyte[0] = key[d] ;
-        hexbyte[1] = key[d+1] ;
+        for( d = 0; d < strlen(key); d += 3 )
+        {
+            hexbyte[0] = key[d] ;
+            hexbyte[1] = key[d+1] ;
 
-        sscanf( hexbyte, "%X", &octets[d/3] ) ;
+            sscanf( hexbyte, "%2X", &octets[d/3] ) ;
 
-        hexstg[i++] = octets[d/3];
+            hexstg[i++] = octets[d/3];
+        }
+        hexstg[i] = '\0';
+
+
+        *ifPhysAddress_val_ptr_len = MAC_ADDRESS_OCTATES;
+        memcpy(ifPhysAddress_val_ptr,hexstg, MAC_ADDRESS_OCTATES+1);
     }
-    hexstg[i] = '\0';
-
-
-    *ifPhysAddress_val_ptr_len = MAC_ADDRESS_OCTATES;
-    memcpy(ifPhysAddress_val_ptr,hexstg, MAC_ADDRESS_OCTATES+1);
+    else {
+        *ifPhysAddress_val_ptr = '\0';
+        *ifPhysAddress_val_ptr_len = 0;
+    }
 
 }
 
