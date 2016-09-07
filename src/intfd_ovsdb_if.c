@@ -148,6 +148,7 @@ char *interface_pm_info_connector_strings[] = {
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_FC,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_LR,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_LRM,
+    OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_ER,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_LX,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_RJ45,
     OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_SR,
@@ -274,7 +275,9 @@ get_connector_flags(enum ovsrec_interface_pm_info_connector_e connector)
         break;
     case INTERFACE_PM_INFO_CONNECTOR_SFP_SR:
     case INTERFACE_PM_INFO_CONNECTOR_SFP_LR:
+    case INTERFACE_PM_INFO_CONNECTOR_SFP_LRM:
     case INTERFACE_PM_INFO_CONNECTOR_SFP_DAC:
+    case INTERFACE_PM_INFO_CONNECTOR_SFP_ER:
         return PM_SFP_PLUS_FLAGS;
         break;
     case INTERFACE_PM_INFO_CONNECTOR_SFP28_SR:
@@ -300,7 +303,6 @@ get_connector_flags(enum ovsrec_interface_pm_info_connector_e connector)
     case INTERFACE_PM_INFO_CONNECTOR_SFP_LX:
     case INTERFACE_PM_INFO_CONNECTOR_SFP_CX:
     case INTERFACE_PM_INFO_CONNECTOR_SFP_FC:
-    case INTERFACE_PM_INFO_CONNECTOR_SFP_LRM:
     default:
         return PM_UNSUPPORTED_FLAG;
         break;
@@ -325,6 +327,9 @@ get_connector_if_type(enum ovsrec_interface_pm_info_connector_e connector)
         break;
     case INTERFACE_PM_INFO_CONNECTOR_SFP_LR:
         return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_10GBASE_LR;
+        break;
+    case INTERFACE_PM_INFO_CONNECTOR_SFP_ER:
+        return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_10GBASE_ER;
         break;
     case INTERFACE_PM_INFO_CONNECTOR_QSFP_CR4:
         return INTERFACE_HW_INTF_CONFIG_INTERFACE_TYPE_40GBASE_CR4;
@@ -883,6 +888,9 @@ intfd_parse_pm_info(struct intf_hw_info *hw_info, struct intf_pm_info *pm_info,
     } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_LRM))) {
         pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP_LRM;
 
+    } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_ER))) {
+        pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP_ER;
+
     } else if (data && (STR_EQ(data, OVSREC_INTERFACE_PM_INFO_CONNECTOR_SFP_LX))) {
         pm_info->connector = INTERFACE_PM_INFO_CONNECTOR_SFP_LX;
 
@@ -1116,12 +1124,20 @@ del_old_port(struct shash_node *sh_node)
         for(j = 0; j < port_data->n_interfaces; j++) {
             smap_init(&hw_cfg_smap);
             intf_row = port_data->interface[j];
-            /* Making sure not to reset an interface associated with another port */
-            if (!get_matching_port_row(intf_row->name))
-            {
-                VLOG_DBG("Port delete : reset interface %s\n", intf_row->name);
-                smap_add(&hw_cfg_smap, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE_FALSE);
-                ovsrec_interface_set_hw_intf_config(intf_row, &hw_cfg_smap);
+            /* logical interface details will not be there in
+               interface table since it has been deleted */
+            struct ovsrec_interface *intf = get_matching_interface_row(sh_node->name);
+            /* skip this for virtual interfaces */
+            if(intf){
+                /* Making sure not to reset a physical interface associated
+                   with another port */
+                if (!get_matching_port_row(intf_row->name))
+                {
+                    VLOG_DBG("Port delete : reset interface %s\n", intf_row->name);
+                    smap_add(&hw_cfg_smap, INTERFACE_HW_INTF_CONFIG_MAP_ENABLE,
+                             INTERFACE_HW_INTF_CONFIG_MAP_ENABLE_FALSE);
+                    ovsrec_interface_set_hw_intf_config(intf_row, &hw_cfg_smap);
+                }
             }
             smap_destroy(&hw_cfg_smap);
         }

@@ -20,6 +20,8 @@ OpenSwitch Test for simple ping between nodes, when interface enable/disable
 """
 
 from __future__ import unicode_literals, absolute_import
+from __future__ import print_function, division
+
 from time import sleep
 
 TOPOLOGY = """
@@ -85,7 +87,9 @@ def test_ft_interface_enable_disable(topology):
 
     # Configure interfaces 1 and 2 with interface 1 is down
     interface_disable(ops1, p1)
+    sleep(5)
     interface_enable(ops1, p2)
+    sleep(5)
     admin_state = ovs_chek(ops1, p1)
     assert admin_state == 'down'
 
@@ -105,6 +109,8 @@ def test_ft_interface_enable_disable(topology):
 
     # Enable interface 1 and verify that ping succeeds :
     interface_enable(ops1, p1)
+    # Adding small delay for the interface to be enabled
+    sleep(5)
     admin_state = ovs_chek(ops1, p1)
     assert admin_state == 'up'
     sleep(5)
@@ -115,6 +121,7 @@ def test_ft_interface_enable_disable(topology):
 
     # Disable interface 1 and verify that ping succeeds :
     interface_disable(ops1, p1)
+    sleep(5)
     admin_state = ovs_chek(ops1, p1)
     assert admin_state == 'down'
     sleep(5)

@@ -19,7 +19,7 @@
 OpenSwitch Test for interface related configurations.
 """
 
-# from pytest import mark
+from pytest import mark
 from time import sleep
 
 TOPOLOGY = """
@@ -39,6 +39,7 @@ ops1:if04
 """
 
 
+@mark.gate
 def test_intfd_ct_admin_state(topology, step):
     ops1 = topology.get("ops1")
     assert ops1 is not None
@@ -50,122 +51,127 @@ def test_intfd_ct_admin_state(topology, step):
 
     step("Step 2- Verify the interface is created with same name for L3 port")
     port = ops1.ports["if01"]
-    out = ops1("get interface {port} name".format(
+    out = ops1("ovs-vsctl get interface {port} name".format(
         port=port
-    ), shell="vsctl")
+    ), shell="bash")
     assert port in out
 
     step("Step 3- Verify the interface is created with same name for VLAN "
          "interface")
-    with ops1.libs.vtysh.ConfigInterfaceVlan("1") as ctx:
+    with ops1.libs.vtysh.ConfigVlan("99") as ctx:
         pass
-    out = ops1("get interface vlan{vlan} name".format(vlan="1"),
-               shell="vsctl")
-    expected_output = "vlan{no}".format(no="1")
+    with ops1.libs.vtysh.ConfigInterfaceVlan("99") as ctx:
+        pass
+    out = ops1("ovs-vsctl get interface vlan{vlan} name".format(vlan="99"),
+               shell="bash")
+    expected_output = "vlan{no}".format(no="99")
     assert expected_output in out
 
     step("Step 4- Verify the interface is down by default")
-    out = ops1("get interface {port} hw_intf_config".format(port=port),
-               shell="vsctl")
+    out = ops1("ovs-vsctl get interface {port} hw_intf_config".format(
+               port=port), shell="bash")
     assert "enable=\"false\"" in out
 
     step("Step 5- Verify the interface associated with the port goes down"
          " when port is disabled for L3 interface")
     with ops1.libs.vtysh.ConfigInterface('if01') as ctx:
         ctx.no_shutdown()
-    out = ops1("get interface {port} hw_intf_config".format(port=port),
-               shell="vsctl")
+    out = ops1("ovs-vsctl get interface {port} hw_intf_config".format(
+               port=port), shell="bash")
     assert "enable=\"true\"" in out
 
     step("Step 6- Change the admin state of port to down")
-    ops1("set interface {port} user_config:admin=down".format(port=port),
-         shell="vsctl")
+    # Increaseing timeout for command
+    bash = ops1.get_shell('bash')
+    bash.send_command("ovs-vsctl set interface {port} user_config:admin=down".format(
+         port=port), timeout=120)
 
     step("Step 7- Verify the interface associated to the port is down")
     # sleep(2)
-    out = ops1("get interface {port} hw_intf_config".format(port=port),
-               shell="vsctl")
+    out = ops1("ovs-vsctl get interface {port} hw_intf_config".format(
+               port=port), shell="bash")
     assert "enable=\"false\"" in out
 
     step("Step 8- Verify the interface associated with the port goes down"
          " when port is disabled for VLAN interface")
-    with ops1.libs.vtysh.ConfigInterfaceVlan("1") as ctx:
+    with ops1.libs.vtysh.ConfigInterfaceVlan("99") as ctx:
         ctx.no_shutdown()
     sleep(2)
-    out = ops1("get interface vlan{vlan} hw_intf_config".format(vlan="1"),
-               shell="vsctl")
+    out = ops1("ovs-vsctl get interface vlan{vlan} hw_intf_config".format(
+               vlan="99"), shell="bash")
     assert "enable=\"true\"" in out.strip()
 
     step("Step 9- Change the admin state of port to down")
-    ops1("set port vlan{vlan} admin=down".format(vlan="1"), shell="vsctl")
+    ops1("ovs-vsctl set port vlan{vlan} admin=down".format(vlan="99"),
+         shell="bash")
 
     step("Step 10- Verify the interface associated to the port is down")
-    out = ops1("get interface vlan{vlan} hw_intf_config".format(vlan="1"),
-               shell="vsctl")
+    out = ops1("ovs-vsctl get interface vlan{vlan} hw_intf_config".format(
+               vlan="99"), shell="bash")
     assert "enable=\"false\"" in out.strip()
 
     step("Step 11- Verify multiple interfaces associated with LAG port goes "
          "down when LAG port is disabled")
-    with ops1.libs.vtysh.ConfigInterfaceLag("1") as ctx:
+    with ops1.libs.vtysh.ConfigInterfaceLag("777") as ctx:
         pass
     with ops1.libs.vtysh.ConfigInterface('if02') as ctx:
         ctx.no_shutdown()
-        ctx.lag("1")
+        ctx.lag("777")
     with ops1.libs.vtysh.ConfigInterface('if03') as ctx:
         ctx.no_shutdown()
-        ctx.lag("1")
+        ctx.lag("777")
     with ops1.libs.vtysh.ConfigInterface('if04') as ctx:
         ctx.no_shutdown()
-        ctx.lag("1")
+        ctx.lag("777")
 
     step("Step 12- All interfaces under the lag is up as soon as lag is up")
-    ops1("set port {port} admin=down".format(port="lag1"),
-         shell="vsctl")
-    out = ops1("get interface {port} hw_intf_config".format(
+    ops1("ovs-vsctl set port {port} admin=down".format(port="lag777"),
+         shell="bash")
+    out = ops1("ovs-vsctl get interface {port} hw_intf_config".format(
         port=ops1.ports["if02"]
-    ), shell="vsctl")
+    ), shell="bash")
     assert "enable=\"false\"" in out
-    out = ops1("get interface {port} hw_intf_config".format(
+    out = ops1("ovs-vsctl get interface {port} hw_intf_config".format(
         port=ops1.ports["if03"]
-    ), shell="vsctl")
+    ), shell="bash")
     assert "enable=\"false\"" in out
-    out = ops1("get interface {port} hw_intf_config".format(
+    out = ops1("ovs-vsctl get interface {port} hw_intf_config".format(
         port=ops1.ports["if04"]
-    ), shell="vsctl")
+    ), shell="bash")
     assert "enable=\"false\"" in out
 
     step("Step 14- All interfaces under the lag is up as soon as lag is up")
-    ops1("set port {port} admin=up".format(port="lag1"),
-         shell="vsctl")
-    out = ops1("get interface {port} hw_intf_config".format(
+    ops1("ovs-vsctl set port {port} admin=up".format(port="lag777"),
+         shell="bash")
+    out = ops1("ovs-vsctl get interface {port} hw_intf_config".format(
         port=ops1.ports["if02"]
-    ), shell="vsctl")
+    ), shell="bash")
     assert "enable=\"true\"" in out
-    out = ops1("get interface {port} hw_intf_config".format(
+    out = ops1("ovs-vsctl get interface {port} hw_intf_config".format(
         port=ops1.ports["if03"]
-    ), shell="vsctl")
+    ), shell="bash")
     assert "enable=\"true\"" in out
-    out = ops1("get interface {port} hw_intf_config".format(
+    out = ops1("ovs-vsctl get interface {port} hw_intf_config".format(
         port=ops1.ports["if04"]
-    ), shell="vsctl")
+    ), shell="bash")
     assert "enable=\"true\"" in out
 
     step("Step 15- Interfaces detached from lag gets back to default state"
          " down")
     ops1("conf t")
-    ops1("no interface lag 1")
+    ops1("no interface lag 777")
     ops1("end")
     with ops1.libs.vtysh.ConfigInterface('if03') as ctx:
         ctx.shutdown()
     with ops1.libs.vtysh.ConfigInterface('if04') as ctx:
         ctx.shutdown()
-    out = ops1("get interface {port} hw_intf_config".format(
+    out = ops1("ovs-vsctl get interface {port} hw_intf_config".format(
         port=ops1.ports["if03"]
-    ), shell="vsctl")
+    ), shell="bash")
     assert "enable=\"false\"" in out
-    out = ops1("get interface {port} hw_intf_config".format(
+    out = ops1("ovs-vsctl get interface {port} hw_intf_config".format(
         port=ops1.ports["if04"]
-    ), shell="vsctl")
+    ), shell="bash")
     assert "enable=\"false\"" in out
 
     step("Step 16- Event logging happens for interface up/down")
@@ -174,10 +180,14 @@ def test_intfd_ct_admin_state(topology, step):
     output = ops1("show events")
     lines = output.split('\n')
     counter1 = 0
+    expected_output_1 = ("Interface port_admin set to down for {port} "
+                         "interface".format(port=ops1.ports["if01"]))
+    expected_output_2 = ("Interface port_admin set to up for {port} "
+                         "interface".format(port=ops1.ports["if01"]))
     for line in lines:
-        if "Interface port_admin set to down for 1 interface" in line:
+        if expected_output_1 in line:
             counter1 += 1
-        if "Interface port_admin set to up for 1 interface" in line:
+        if expected_output_2 in line:
             counter1 += 1
 
     with ops1.libs.vtysh.ConfigInterface('if01') as ctx:
@@ -187,9 +197,9 @@ def test_intfd_ct_admin_state(topology, step):
     lines = output.split('\n')
     counter2 = 0
     for line in lines:
-        if "Interface port_admin set to down for 1 interface" in line:
+        if expected_output_1 in line:
             counter2 += 1
-        if "Interface port_admin set to up for 1 interface" in line:
+        if expected_output_2 in line:
             counter2 += 1
 
     assert (counter2 - counter1) is 2
