@@ -4135,5 +4135,8 @@ void cli_post_init(void)
     install_element (VLAN_INTERFACE_NODE, &cli_intf_shutdown_cmd);
     install_element (VLAN_INTERFACE_NODE, &no_cli_intf_shutdown_cmd);
 
+    install_element (VXLAN_TUNNEL_INTERFACE_NODE, &cli_intf_shutdown_cmd);
+    install_element (VXLAN_TUNNEL_INTERFACE_NODE, &no_cli_intf_shutdown_cmd);
+
     return;
 }
