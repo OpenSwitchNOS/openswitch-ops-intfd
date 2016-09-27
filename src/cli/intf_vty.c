@@ -2946,9 +2946,25 @@ display_header(bool brief) {
     }
 }
 
+bool
+is_tunnel_interface(const struct ovsrec_interface *if_row)
+{
+    if (if_row)
+    {
+        if (!strcmp(OVSREC_INTERFACE_TYPE_VXLAN, if_row->type) ||
+            !strcmp(OVSREC_INTERFACE_TYPE_GRE_IPV4, if_row->type))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 int
 cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
-        int flags, int argc, const char *argv[], bool brief)
+                         int flags, int argc, const char *argv[], bool brief,
+                         bool tunnel_only)
 {
     const struct ovsrec_interface *ifrow = NULL;
     const char *cur_state = NULL;
@@ -2984,6 +3000,11 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
     OVSREC_INTERFACE_FOR_EACH(ifrow, idl)
     {
         const char *state_value;
+
+        if (tunnel_only && !is_tunnel_interface(ifrow))
+        {
+            continue;
+        }
 
         if(!ifrow->split_parent)
         {
@@ -3045,7 +3066,8 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
         }
 
         if (strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_SYSTEM) != 0 &&
-                strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_INTERNAL) != 0)
+            strcmp(ifrow->type, OVSREC_INTERFACE_TYPE_INTERNAL) != 0 &&
+            !is_tunnel_interface(ifrow))
         {
             continue;
         }
@@ -3068,9 +3090,14 @@ cli_show_interface_exec (struct cmd_element *self, struct vty *vty,
 
             show_interface_status(vty, ifrow, internal_if, brief);
 
-            if (strcmp(OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN, ifrow->link_state) == 0 ){
-                user_config_speed = smap_get(&ifrow->user_config, INTERFACE_USER_CONFIG_MAP_SPEEDS);
-                if (user_config_speed != NULL) {
+            if (ifrow->link_state &&
+                strcmp(OVSREC_INTERFACE_USER_CONFIG_ADMIN_DOWN,
+                       ifrow->link_state) == 0 )
+            {
+                user_config_speed = smap_get(&ifrow->user_config,
+                                             INTERFACE_USER_CONFIG_MAP_SPEEDS);
+                if (user_config_speed != NULL)
+                {
                     vty_out(vty,"%-6s", user_config_speed);
                 }
                 else
@@ -3721,6 +3748,7 @@ DEFUN (cli_intf_show_intferface_ifname,
 {
     bool brief = false;
     bool transceiver = false;
+    bool tunnel_only = false;
     int rc = CMD_SUCCESS;
 
     if ((NULL != argv[1]) && (strcmp(argv[1], "brief") == 0))
@@ -3743,7 +3771,8 @@ DEFUN (cli_intf_show_intferface_ifname,
     }
     else
     {
-        rc = cli_show_interface_exec (self, vty, vty_flags, argc, argv, brief);
+        rc = cli_show_interface_exec (self, vty, vty_flags, argc, argv, brief,
+                                      tunnel_only);
     }
 
     return rc;
@@ -3760,6 +3789,7 @@ DEFUN (cli_intf_show_intferface_ifname_br,
 {
     bool brief = false;
     bool transceiver = false;
+    bool tunnel_only = false;
     int rc = CMD_SUCCESS;
 
     if ((NULL != argv[0]) && (strcmp(argv[0], "brief") == 0))
@@ -3784,7 +3814,8 @@ DEFUN (cli_intf_show_intferface_ifname_br,
     }
     else
     {
-        rc = cli_show_interface_exec (self, vty, vty_flags, argc, argv, brief);
+        rc = cli_show_interface_exec (self, vty, vty_flags, argc, argv, brief,
+                                      tunnel_only);
     }
     return rc;
 }
@@ -4134,9 +4165,6 @@ void cli_post_init(void)
 
     install_element (VLAN_INTERFACE_NODE, &cli_intf_shutdown_cmd);
     install_element (VLAN_INTERFACE_NODE, &no_cli_intf_shutdown_cmd);
-
-    install_element (VXLAN_TUNNEL_INTERFACE_NODE, &cli_intf_shutdown_cmd);
-    install_element (VXLAN_TUNNEL_INTERFACE_NODE, &no_cli_intf_shutdown_cmd);
 
     return;
 }
